@@ -23,7 +23,7 @@ Dự án Maven cung cấp bộ kiểm thử giao diện Selenium WebDriver cho b
 | `PRODUCT` | Mở trang chi tiết từ danh mục; kiểm tra giá và ảnh chính |
 | `CART` | Chỉ tìm/mở đường dẫn giỏ hàng do website công khai; hiện không thấy liên kết nên bài này được ghi `BLOCKED` |
 
-Thiết kế hiện có 17 test case; 11 phương thức JUnit đang được tự động hóa. 6 trường hợp giỏ hàng/chi tiết nâng cao chưa chạy. Các test đăng nhập và đăng ký trước đây đã được gỡ khỏi suite; các Page Object cũ được giữ lại nhưng không được gọi trong kiểm thử hiện tại.
+Thiết kế hiện có 17 test case; 11 phương thức JUnit kiểm tra luồng giao diện đang được tự động hóa. Suite cũng có kiểm thử hồi quy xác nhận evidence tiếng Việt được ghi bằng UTF-8. 6 trường hợp giỏ hàng/chi tiết nâng cao chưa chạy. Các test đăng nhập và đăng ký trước đây đã được gỡ khỏi suite; các Page Object cũ được giữ lại nhưng không được gọi trong kiểm thử hiện tại.
 
 ## Công nghệ
 
@@ -127,6 +127,8 @@ mvn test -Dmobilecity.baseUrl=https://mobilecity.vn/
 
 Một bài kiểm thử giỏ hàng bị JUnit hủy sẽ được ghi là bỏ qua trong Surefire và phân loại là `BLOCKED` trong sổ theo dõi dự án. Việc thiếu tệp artifact hoặc ảnh chụp không chứng minh bài kiểm thử thành công. Khi cập nhật hồ sơ dự án, hãy lưu cùng nhau Test Run ID, môi trường, phạm vi chính xác, kết quả và bằng chứng.
 
+Các tệp văn bản trong run dùng UTF-8: Maven được cấu hình qua `.mvn/jvm.config`, JVM của Surefire (kể cả stdout/stderr) được cấu hình riêng trong `pom.xml`, và `EvidenceWriter` ghi log bằng `StandardCharsets.UTF_8`. Kiểm thử hồi quy `EvidenceWriterTest` kiểm tra nội dung tiếng Việt sau khi đọc lại file evidence. Khi xem log trên Windows, mở bằng công cụ hỗ trợ UTF-8 hoặc đặt terminal ở UTF-8; không chuyển mã file sang ANSI.
+
 ## Kho GitHub và đẩy thay đổi
 
 Kho mã nguồn là [dotuananh0206-sudo/mobilecity-selenium](https://github.com/dotuananh0206-sudo/mobilecity-selenium). Thư mục dự án này là thư mục gốc của kho. Không khởi tạo hoặc đẩy thư mục bài tập cha lên kho: các workbook nội bộ, báo cáo, ảnh chụp cũ và thông tin cá nhân không thuộc kho mã nguồn công khai.
@@ -163,7 +165,7 @@ Lịch sử CI đã được xác minh trước khi thay đổi phạm vi:
 - [Lần chạy #2](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047533363): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-2`.
 - [Lần chạy #3](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38049266948): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức; artifact `mobilecity-test-results-3`.
 
-Các lần chạy CI cũ gặp Cloudflare security verification; raw failures/errors không được xác nhận là defect MobileCity. Lần chạy cục bộ mới nhất cho phạm vi mới là `MC-20261010-223745`: `mvn --batch-mode --no-transfer-progress clean test`, 11 phương thức, **10 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED**, cùng 6 test case chưa chạy. Test giỏ hàng bị chặn vì không tìm thấy liên kết công khai; không nhấn “MUA”/“ĐẶT HÀNG TRƯỚC”. Surefire, log và console output được lưu tại `Team/6. Evidence/execution-logs/MC-20261010-223745/`. Lần chạy CI chưa được thực hiện lại sau các thay đổi cục bộ này.
+Các lần chạy CI cũ gặp Cloudflare security verification; raw failures/errors không được xác nhận là defect MobileCity. Lần chạy đầy đủ gần nhất là `MC-20261010-232639`: `mvn --batch-mode --no-transfer-progress clean test`, tổng 12 phương thức gồm 11 UI và một kiểm thử hồi quy UTF-8, **11 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED**; trong đó 10 UI PASS, 1 UI BLOCKED, kiểm thử UTF-8 PASS và 6 case thiết kế chưa chạy. Test giỏ hàng bị chặn vì không tìm thấy liên kết công khai; không nhấn “MUA”/“ĐẶT HÀNG TRƯỚC”. Surefire XML/text và `reports/test-execution.log` được tạo theo UTF-8. Lần chạy CI chưa được thực hiện lại sau các thay đổi cục bộ này.
 
 ## Sự cố thường gặp
 
