@@ -1,15 +1,29 @@
 # Bộ kiểm thử giao diện Selenium cho MobileCity
 
-Dự án Maven cung cấp một bộ kiểm thử khói Selenium WebDriver nhỏ, có thể chạy lặp lại trên các trang công khai của [MobileCity](https://mobilecity.vn/). Các bài kiểm thử sử dụng Java 17+, JUnit 5 và mô hình Page Object.
+Dự án Maven cung cấp bộ kiểm thử giao diện Selenium WebDriver cho bốn chức năng công khai của [MobileCity](https://mobilecity.vn/): trang chủ/danh mục, tìm kiếm sản phẩm, chi tiết sản phẩm và giỏ hàng. Bộ kiểm thử sử dụng Java 17+, JUnit 5 và mô hình Page Object.
 
 ## Mục tiêu và an toàn
 
-- Kiểm tra trang chủ, trang danh mục/sản phẩm và các thành phần đăng nhập/đăng ký/tìm kiếm hiển thị công khai.
+- Kiểm tra điều hướng và sản phẩm hiển thị trên trang chủ/danh mục.
+- Kiểm tra tìm kiếm hợp lệ, trạng thái không có kết quả, ràng buộc từ khóa rỗng và điều hướng từ kết quả đến chi tiết.
+- Kiểm tra tên, giá và ảnh chính trên trang chi tiết sản phẩm.
+- Chỉ mở giỏ hàng qua liên kết công khai đã xác minh; không đoán URL hoặc kích hoạt luồng mua/đặt hàng.
 - Tái sử dụng bộ chọn phần tử và cấu hình trình duyệt trong các lớp page/configuration.
 - Lưu kết quả Maven thực tế và bằng chứng khi kiểm thử thất bại sau mỗi lần chạy.
-- Không gửi truy vấn tìm kiếm, thông tin đăng nhập/đăng ký thật, OTP, giao dịch mua hàng, thanh toán hay dữ liệu thanh toán.
+- Chỉ gửi truy vấn tìm kiếm công khai, không chứa dữ liệu cá nhân; không đăng nhập/đăng ký, gửi OTP, mua hàng, đặt đơn, checkout hay thanh toán.
 - Không vượt CAPTCHA hoặc cơ chế chống bot. Ghi nhận luồng bị chặn là `BLOCKED`; không đánh dấu bài kiểm thử chưa chạy là `PASS`.
 - Đây là bộ kiểm thử khói trên trang công khai, không phải bằng chứng rằng toàn bộ trang web không có lỗi.
+
+## Phạm vi kiểm thử hiện tại
+
+| Module | Phạm vi |
+| --- | --- |
+| `HOME` | Tải trang chủ, logo, điều hướng đến danh mục điện thoại và thẻ sản phẩm/giá công khai |
+| `SEARCH` | Trường bắt buộc, kết quả khớp từ khóa, trạng thái không có kết quả và mở chi tiết từ kết quả |
+| `PRODUCT` | Mở trang chi tiết từ danh mục; kiểm tra giá và ảnh chính |
+| `CART` | Chỉ tìm/mở đường dẫn giỏ hàng do website công khai; hiện không thấy liên kết nên bài này được ghi `BLOCKED` |
+
+Thiết kế hiện có 17 test case; 11 phương thức JUnit đang được tự động hóa. 6 trường hợp giỏ hàng/chi tiết nâng cao chưa chạy. Các test đăng nhập và đăng ký trước đây đã được gỡ khỏi suite; các Page Object cũ được giữ lại nhưng không được gọi trong kiểm thử hiện tại.
 
 ## Công nghệ
 
@@ -143,12 +157,13 @@ Tệp workflow: `.github/workflows/selenium-test.yml`.
 
 GitHub Actions chạy trên máy ảo của GitHub; nó **không** chạy bên trong trang kho mã hoặc IDE cục bộ của bạn. Để xem một lần chạy, mở tab **Actions** của kho, chọn **MobileCity Selenium Tests**, rồi mở lần chạy tương ứng với commit cần xem. Để tải bằng chứng, mở **Summary** của lần chạy đã hoàn tất và tải artifact. Artifact được lưu trong 14 ngày; hãy tải xuống trước khi hết hạn nếu cần dùng cho báo cáo.
 
-Lịch sử CI mới nhất đã được xác minh tại phiên bản README này:
+Lịch sử CI đã được xác minh trước khi thay đổi phạm vi:
 
 - [Lần chạy #1](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047040851): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-1`.
 - [Lần chạy #2](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047533363): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-2`.
+- [Lần chạy #3](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38049266948): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức; artifact `mobilecity-test-results-3`.
 
-Cả hai lần chạy CI cũng còn 6 trong số 13 trường hợp đã thiết kế ở trạng thái `NOT EXECUTED` vì bộ kiểm thử hiện tại chưa triển khai chúng. Các lỗi CI có nghĩa workflow hiện chưa xanh. Những lỗi assertion/timeout được ghi nhận không đủ để kết luận sản phẩm MobileCity có lỗi; hãy kiểm tra artifact của lần chạy và phản hồi trang thực tế trước khi sửa bộ chọn hoặc đưa ra kết luận. Baseline cục bộ mới nhất `MC-20261010-174513` có 6 `PASS` và 1 `BLOCKED` trong 7 phương thức đã chạy, cùng 6 trường hợp được thiết kế chưa chạy; kết quả cục bộ này không thay thế các lần CI thất bại.
+Các lần chạy CI cũ gặp Cloudflare security verification; raw failures/errors không được xác nhận là defect MobileCity. Lần chạy cục bộ mới nhất cho phạm vi mới là `MC-20261010-223745`: `mvn --batch-mode --no-transfer-progress clean test`, 11 phương thức, **10 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED**, cùng 6 test case chưa chạy. Test giỏ hàng bị chặn vì không tìm thấy liên kết công khai; không nhấn “MUA”/“ĐẶT HÀNG TRƯỚC”. Surefire, log và console output được lưu tại `Team/6. Evidence/execution-logs/MC-20261010-223745/`. Lần chạy CI chưa được thực hiện lại sau các thay đổi cục bộ này.
 
 ## Sự cố thường gặp
 

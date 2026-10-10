@@ -5,7 +5,9 @@ import mobilecity.config.TestConfig;
 import mobilecity.utils.TestRunContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,5 +41,15 @@ public abstract class BaseTest {
                 driver = null;
             }
         }
+    }
+
+    protected void assumeNoSiteChallenge() {
+        String pageContent = driver.getTitle() + " " + driver.findElement(By.tagName("body")).getText();
+        String normalized = pageContent.toLowerCase();
+        Assumptions.assumeFalse(
+                normalized.contains("security verification")
+                        || normalized.contains("checking your browser")
+                        || normalized.contains("verify you are human"),
+                "BLOCKED: website access challenge prevents evaluating the requested page");
     }
 }

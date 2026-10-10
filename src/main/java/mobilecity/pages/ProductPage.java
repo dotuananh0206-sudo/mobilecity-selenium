@@ -1,11 +1,16 @@
 package mobilecity.pages;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 
 public final class ProductPage extends BasePage {
     private static final By PRODUCT_LINKS = By.cssSelector("p.name a[href$='.html']");
     private static final By PRODUCT_HEADING = By.cssSelector("h1");
+    private static final By LISTED_PRODUCT_PRICE = By.cssSelector("div.product-list-item .price");
+    private static final By PRODUCT_PRICE = By.cssSelector(".product-price-box .price");
+    private static final By PRIMARY_PRODUCT_IMAGE = By.cssSelector("ul.product_image img");
 
     public ProductPage(WebDriver driver) {
         super(driver);
@@ -19,6 +24,10 @@ public final class ProductPage extends BasePage {
         return text;
     }
 
+    public String firstListedProductPrice() {
+        return visible(LISTED_PRODUCT_PRICE).getText().trim();
+    }
+
     public void openFirstListedProduct() {
         clickable(PRODUCT_LINKS).click();
     }
@@ -29,6 +38,16 @@ public final class ProductPage extends BasePage {
 
     public String productHeading() {
         return visible(PRODUCT_HEADING).getText().trim();
+    }
+
+    public String productPrice() {
+        return visible(PRODUCT_PRICE).getText().trim();
+    }
+
+    public boolean hasLoadedPrimaryImage() {
+        WebElement image = visible(PRIMARY_PRODUCT_IMAGE);
+        return Boolean.TRUE.equals(((JavascriptExecutor) driver)
+                .executeScript("return arguments[0].complete && arguments[0].naturalWidth > 0", image));
     }
 
     public boolean hasProductDetails() {

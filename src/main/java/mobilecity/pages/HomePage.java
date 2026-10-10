@@ -5,6 +5,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
 public final class HomePage extends BasePage {
+    private static final By HOME_LOGO = By.cssSelector("a[href='https://mobilecity.vn'] img[alt*='logo-mobilecity']");
     private static final By CATEGORY_LINK = By.cssSelector("a[href='https://mobilecity.vn/dien-thoai'], a[href='/dien-thoai']");
     private static final By SEARCH_INPUT = By.id("keyword");
     private static final By CART_LINK = By.xpath("//a[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'giỏ hàng') or contains(translate(@href, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'cart')]");
@@ -26,6 +27,10 @@ public final class HomePage extends BasePage {
 
     public String title() {
         return driver.getTitle();
+    }
+
+    public boolean hasLogo() {
+        return isVisible(HOME_LOGO);
     }
 
     public boolean hasPhoneCategoryLink() {
