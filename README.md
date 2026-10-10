@@ -69,26 +69,26 @@ src/test/java/mobilecity/tests/      Independent JUnit 5 tests
 src/test/resources/testdata/         Non-sensitive test data
 ```
 
-Open this folder as a Maven project in IntelliJ IDEA or Eclipse. Import `pom.xml`, select a JDK 17+ and run the Maven test lifecycle. GitHub repository ownership/access must be configured separately before publishing; never commit `.env` or secrets.
+Open this folder as a Maven project in IntelliJ IDEA or Eclipse. Import `pom.xml`, select a JDK 17+ and run the Maven test lifecycle. The project is published at `https://github.com/dotuananh0206-sudo/mobilecity-selenium`; never commit `.env` or secrets.
 
 ## GitHub Actions and publishing
 
 The workflow at `.github/workflows/selenium-test.yml` runs on pushes and pull requests targeting `main`, and can also be started manually from the Actions tab. It runs headless Chrome with Java 17 and uploads test evidence as an artifact.
 
-Publish this folder (`Team/5. Software/`) as the repository root of the dedicated public repository `dotuananh0206-sudo/mobilecity-selenium`. Do not publish the parent `Team/` folder, coursework workbooks, defect reports, screenshots, execution logs, or other internal evidence. `.gitignore` excludes generated output; `.env` and secrets must never be committed.
+The first verified GitHub Actions run (#1, commit `6cf977f`) completed with **failure**, not success: Maven reported 7 tests, 4 failures, 2 errors, and 1 skipped. The failed assertions/timeouts indicate that expected public-page controls/content were not observed in that runner execution; the available CI evidence does not establish whether the cause was website access/content, a changed page, or test compatibility. Do not report this run as a product defect or a passing CI run. Review the [workflow run](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047040851) and download its `mobilecity-test-results-1` artifact before diagnosing or updating locators.
 
-Create an **empty** public repository named `mobilecity-selenium` under the `dotuananh0206-sudo` account on GitHub (do not initialize it with a README, license, or `.gitignore`). Then, from this project folder, review and publish only the intended source/configuration files:
+Only this folder (`Team/5. Software/`) is the root of the dedicated public repository `dotuananh0206-sudo/mobilecity-selenium`. Do not publish the parent `Team/` folder, coursework workbooks, defect reports, screenshots, execution logs, or other internal evidence. `.gitignore` excludes generated output; `.env` and secrets must never be committed.
+
+The repository is already initialized and pushed to `main`. For subsequent reviewed source changes, run from this project folder:
 
 ```powershell
-git init
+git status --short --branch
 git add .github src pom.xml README.md .gitignore .env.example
 git status --short
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/dotuananh0206-sudo/mobilecity-selenium.git
-git push -u origin main
+git commit -m "Describe the reviewed change"
+git push
 ```
 
-Never publish the parent `Team/` directory. Review `git status --short` before committing, and verify that the staged list contains only project source and configuration. If `origin` already exists or the GitHub repository already has commits, inspect its URL and history first; do not overwrite history or force-push. GitHub authentication is required to create the repository and push.
+Review `git status --short` before committing, and verify that the staged list contains only project source and configuration. If the remote has advanced, fetch and reconcile its history before pushing; do not overwrite history or force-push.
 
 After the first push, open the repository's **Actions** tab, inspect the latest workflow run, and download the `mobilecity-test-results-*` artifact. A skipped cart test is reported by JUnit as skipped and is documented as `BLOCKED`; it is not a website defect or a successful cart verification.
