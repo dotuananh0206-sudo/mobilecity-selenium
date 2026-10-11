@@ -1,16 +1,17 @@
 # Bộ kiểm thử giao diện Selenium cho MobileCity
 
-Dự án Maven cung cấp bộ kiểm thử giao diện Selenium WebDriver cho bốn chức năng công khai của [MobileCity](https://mobilecity.vn/): trang chủ/danh mục, tìm kiếm sản phẩm, chi tiết sản phẩm và giỏ hàng. Bộ kiểm thử sử dụng Java 17+, JUnit 5 và mô hình Page Object.
+Dự án Maven cung cấp bộ kiểm thử giao diện Selenium WebDriver cho các chức năng trang chủ/danh mục, tìm kiếm, chi tiết sản phẩm và giỏ hàng của [MobileCity](https://mobilecity.vn/). Bộ kiểm thử sử dụng Java 17+, JUnit 5 và mô hình Page Object.
 
 ## Mục tiêu và an toàn
 
 - Kiểm tra điều hướng và sản phẩm hiển thị trên trang chủ/danh mục.
 - Kiểm tra tìm kiếm hợp lệ, trạng thái không có kết quả, ràng buộc từ khóa rỗng và điều hướng từ kết quả đến chi tiết.
 - Kiểm tra tên, giá và ảnh chính trên trang chi tiết sản phẩm.
-- Chỉ mở giỏ hàng qua liên kết công khai đã xác minh; không đoán URL hoặc kích hoạt luồng mua/đặt hàng.
+- Đăng nhập bằng thông tin được cung cấp tạm thời qua biến môi trường, mở giỏ hàng qua liên kết website hiển thị, tăng số lượng mặt hàng đầu tiên một đơn vị rồi tải lại giỏ để xác minh và khôi phục số lượng ban đầu.
+- Không gửi OTP, mua hàng, đặt đơn, checkout hay thanh toán.
 - Tái sử dụng bộ chọn phần tử và cấu hình trình duyệt trong các lớp page/configuration.
 - Lưu kết quả Maven thực tế và bằng chứng khi kiểm thử thất bại sau mỗi lần chạy.
-- Chỉ gửi truy vấn tìm kiếm công khai, không chứa dữ liệu cá nhân; không đăng nhập/đăng ký, gửi OTP, mua hàng, đặt đơn, checkout hay thanh toán.
+- Chỉ gửi truy vấn tìm kiếm công khai không chứa dữ liệu cá nhân; thông tin đăng nhập chỉ được đọc từ biến môi trường khi chạy test và không được ghi vào log.
 - Không vượt CAPTCHA hoặc cơ chế chống bot. Ghi nhận luồng bị chặn là `BLOCKED`; không đánh dấu bài kiểm thử chưa chạy là `PASS`.
 - Đây là bộ kiểm thử khói trên trang công khai, không phải bằng chứng rằng toàn bộ trang web không có lỗi.
 
@@ -21,9 +22,9 @@ Dự án Maven cung cấp bộ kiểm thử giao diện Selenium WebDriver cho b
 | `HOME` | Tải trang chủ, logo, điều hướng đến danh mục điện thoại và thẻ sản phẩm/giá công khai |
 | `SEARCH` | Trường bắt buộc, kết quả khớp từ khóa, trạng thái không có kết quả và mở chi tiết từ kết quả |
 | `PRODUCT` | Mở trang chi tiết từ danh mục; kiểm tra giá và ảnh chính |
-| `CART` | Chỉ tìm/mở đường dẫn giỏ hàng do website công khai; hiện không thấy liên kết nên bài này được ghi `BLOCKED` |
+| `CART` | Đăng nhập bằng tài khoản thử nghiệm, tìm liên kết giỏ hàng trên trang đã đăng nhập, mở giỏ, tăng số lượng mặt hàng đầu tiên một đơn vị và khôi phục số lượng cũ; `BLOCKED` nếu thiếu credentials, CAPTCHA/OTP hoặc không xác minh được điều khiển số lượng |
 
-Thiết kế hiện có 17 test case; 11 phương thức JUnit kiểm tra luồng giao diện đang được tự động hóa. Suite cũng có kiểm thử hồi quy xác nhận evidence tiếng Việt được ghi bằng UTF-8. 6 trường hợp giỏ hàng/chi tiết nâng cao chưa chạy. Các test đăng nhập và đăng ký trước đây đã được gỡ khỏi suite; các Page Object cũ được giữ lại nhưng không được gọi trong kiểm thử hiện tại.
+Kiểm thử giỏ hàng cần một tài khoản thử nghiệm đã được phép sử dụng. Nó không xóa sản phẩm và không tiến hành mua hàng; thay đổi số lượng được khôi phục về giá trị ban đầu. Các thao tác giỏ chỉ được thực hiện nếu trang hiển thị ô số lượng và nút cập nhật gắn với một mặt hàng.
 
 ## Công nghệ
 
@@ -82,8 +83,9 @@ Có thể cung cấp cấu hình tùy chọn bằng thuộc tính Maven hoặc b
 | `mobilecity.waitSeconds` | `MOBILECITY_WAIT_SECONDS` | `15` |
 | `mobilecity.screenshotDir` | `MOBILECITY_SCREENSHOT_DIR` | `screenshots` |
 | `mobilecity.reportDir` | `MOBILECITY_REPORT_DIR` | `reports` |
+| `mobilecity.keepBrowserOpenSeconds` | `MOBILECITY_KEEP_BROWSER_OPEN_SECONDS` | `0` |
 
-Không lưu mật khẩu, token, dữ liệu cá nhân hoặc thông tin tài khoản thật trong `.env.example`, dữ liệu kiểm thử, mã nguồn hay nhật ký. Bộ kiểm thử hiện tại không cần thông tin đăng nhập.
+Kiểm thử giỏ hàng đọc riêng hai biến môi trường `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD`. Workflow dùng GitHub Secrets cùng tên; nếu secrets vắng mặt hoặc PR đến từ fork không được cấp secrets, test giỏ được ghi `BLOCKED`/skipped, không giả thành `PASS`. Không truyền thông tin đăng nhập bằng tham số Maven, không lưu chúng trong `.env`, dữ liệu kiểm thử, mã nguồn, README hoặc nhật ký.
 
 ## Mở dự án bằng IntelliJ IDEA hoặc Eclipse
 
@@ -108,6 +110,26 @@ Chạy một lớp kiểm thử:
 mvn -Dtest=HomeTest test
 ```
 
+Để chạy test giỏ hàng trong PowerShell, nhập tài khoản khi được nhắc. Mật khẩu được nhập ẩn, biến môi trường sẽ bị xóa sau khi Maven kết thúc:
+
+```powershell
+$env:MOBILECITY_USERNAME = Read-Host "Tên đăng nhập / email / số điện thoại"
+$securePassword = Read-Host "Mật khẩu" -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+    $env:MOBILECITY_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
+    mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test
+}
+finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
+    Remove-Item Env:MOBILECITY_USERNAME -ErrorAction SilentlyContinue
+    Remove-Item Env:MOBILECITY_PASSWORD -ErrorAction SilentlyContinue
+    $securePassword.Dispose()
+}
+```
+
+Test giỏ tìm liên kết hiển thị sau đăng nhập, không tự đoán URL. Nếu trang yêu cầu CAPTCHA/OTP hoặc thiếu nút cập nhật đã nhận diện, test dừng với `BLOCKED` và không thay đổi giỏ. Khi tự động tăng số lượng, test chờ xác nhận giao diện, tải lại giỏ để kiểm tra số lượng đã lưu, sau đó thử khôi phục và tải lại để xác nhận giá trị gốc. Ảnh chụp bị tắt cho các test đăng nhập/giỏ để tránh lưu thông tin tài khoản hoặc dữ liệu giỏ riêng tư; mọi test khác vẫn chụp khi thất bại nếu WebDriver hỗ trợ.
+
 Một số lệnh khác:
 
 ```powershell
@@ -115,6 +137,14 @@ mvn -Dtest=SearchTest test
 mvn test -Dmobilecity.headless=false
 mvn test -Dmobilecity.baseUrl=https://mobilecity.vn/
 ```
+
+Muốn dùng **một cửa sổ Chrome** xuyên suốt bộ test và giữ trang cuối mở thêm 60 giây sau khi chạy xong:
+
+```powershell
+mvn "-Dmobilecity.headless=false" "-Dmobilecity.keepBrowserOpenSeconds=60" --batch-mode --no-transfer-progress clean test
+```
+
+Trong lúc chạy, URL vẫn đổi vì mỗi test mở trang cần kiểm tra, nhưng các test sẽ dùng lại cùng cửa sổ Chrome. Khi suite kết thúc, trình duyệt giữ trang cuối trong số giây đã đặt rồi tự đóng. Có thể đổi `60` thành `0`–`300`; mặc định `0` giữ hành vi đóng Chrome như trước. Surefire được cấu hình chờ đủ lâu cho thời gian giữ tối đa.
 
 `mvn clean test` xóa kết quả Maven cũ trong `target/`, sau đó biên dịch và chạy bộ kiểm thử. Lệnh này không thể khiến một trang không truy cập được hoặc một bài kiểm thử bị chặn trở thành thành công. Hãy kiểm tra báo cáo Surefire và nhật ký sau mỗi lần chạy.
 
@@ -128,6 +158,8 @@ mvn test -Dmobilecity.baseUrl=https://mobilecity.vn/
 Một bài kiểm thử giỏ hàng bị JUnit hủy sẽ được ghi là bỏ qua trong Surefire và phân loại là `BLOCKED` trong sổ theo dõi dự án. Việc thiếu tệp artifact hoặc ảnh chụp không chứng minh bài kiểm thử thành công. Khi cập nhật hồ sơ dự án, hãy lưu cùng nhau Test Run ID, môi trường, phạm vi chính xác, kết quả và bằng chứng.
 
 Các tệp văn bản trong run dùng UTF-8: Maven được cấu hình qua `.mvn/jvm.config`, JVM của Surefire (kể cả stdout/stderr) được cấu hình riêng trong `pom.xml`, và `EvidenceWriter` ghi log bằng `StandardCharsets.UTF_8`. Kiểm thử hồi quy `EvidenceWriterTest` kiểm tra nội dung tiếng Việt sau khi đọc lại file evidence. Khi xem log trên Windows, mở bằng công cụ hỗ trợ UTF-8 hoặc đặt terminal ở UTF-8; không chuyển mã file sang ANSI.
+
+Các hồ sơ TestPlan/Run được tạo ngoài Maven nên không tự động nhận cấu hình mã hóa Maven. Khi cập nhật chúng bằng PowerShell, dùng `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` hoặc `[System.IO.File]::WriteAllLines(..., [System.Text.UTF8Encoding]::new($false))`; không chuyển chuỗi UTF-8 qua code page ANSI. Trước khi phát hành hồ sơ mới, chạy `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate_run_documents.ps1 -Directory "<thư_mục_run>"`. Validator quét nội dung text và phần XML trong DOCX/XLSX, đồng thời trả mã lỗi khác 0 nếu phát hiện dấu hiệu mojibake hoặc dấu `?` thay thế nằm giữa ký tự chữ; không phát hành run nếu bước này thất bại.
 
 ## Kho GitHub và đẩy thay đổi
 
@@ -165,7 +197,7 @@ Lịch sử CI đã được xác minh trước khi thay đổi phạm vi:
 - [Lần chạy #2](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047533363): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-2`.
 - [Lần chạy #3](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38049266948): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức; artifact `mobilecity-test-results-3`.
 
-Các lần chạy CI cũ gặp Cloudflare security verification; raw failures/errors không được xác nhận là defect MobileCity. Lần chạy đầy đủ gần nhất là `MC-20261010-232639`: `mvn --batch-mode --no-transfer-progress clean test`, tổng 12 phương thức gồm 11 UI và một kiểm thử hồi quy UTF-8, **11 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED**; trong đó 10 UI PASS, 1 UI BLOCKED, kiểm thử UTF-8 PASS và 6 case thiết kế chưa chạy. Test giỏ hàng bị chặn vì không tìm thấy liên kết công khai; không nhấn “MUA”/“ĐẶT HÀNG TRƯỚC”. Surefire XML/text và `reports/test-execution.log` được tạo theo UTF-8. Lần chạy CI chưa được thực hiện lại sau các thay đổi cục bộ này.
+Các lần chạy CI cũ gặp Cloudflare security verification; raw failures/errors không được xác nhận là defect MobileCity. Lần chạy đầy đủ gần nhất trước khi thêm đăng nhập/giỏ hàng là `MC-20261010-234612`: dùng một cửa sổ Chrome hiển thị xuyên suốt và giữ trang cuối mở 60 giây sau khi chạy; tổng 12 phương thức gồm 11 UI và một kiểm thử hồi quy UTF-8, **11 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED**. Kết quả lịch sử này không xác minh luồng đăng nhập/giỏ hàng mới. Test giỏ hàng lúc đó bị chặn vì không tìm thấy liên kết công khai. Surefire XML/text và `reports/test-execution.log` được tạo theo UTF-8. Lần chạy CI chưa được thực hiện lại sau các thay đổi cục bộ này.
 
 ## Sự cố thường gặp
 

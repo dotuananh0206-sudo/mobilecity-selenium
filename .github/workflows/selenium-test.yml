@@ -41,6 +41,9 @@ jobs:
           chrome-version: stable
 
       - name: Run Maven tests
+        env:
+          MOBILECITY_USERNAME: ${{ secrets.MOBILECITY_USERNAME }}
+          MOBILECITY_PASSWORD: ${{ secrets.MOBILECITY_PASSWORD }}
         run: mvn --batch-mode --no-transfer-progress clean test
 
       - name: Upload test reports and logs

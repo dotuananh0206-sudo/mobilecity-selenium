@@ -45,9 +45,11 @@ public final class ProductPage extends BasePage {
     }
 
     public boolean hasLoadedPrimaryImage() {
-        WebElement image = visible(PRIMARY_PRODUCT_IMAGE);
-        return Boolean.TRUE.equals(((JavascriptExecutor) driver)
-                .executeScript("return arguments[0].complete && arguments[0].naturalWidth > 0", image));
+        return wait.until(currentDriver -> {
+            WebElement image = currentDriver.findElement(PRIMARY_PRODUCT_IMAGE);
+            return Boolean.TRUE.equals(((JavascriptExecutor) currentDriver)
+                    .executeScript("return arguments[0].complete && arguments[0].naturalWidth > 0", image));
+        });
     }
 
     public boolean hasProductDetails() {

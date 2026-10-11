@@ -35,6 +35,30 @@ public final class TestConfig {
         return value("mobilecity.reportDir", "MOBILECITY_REPORT_DIR", "reports");
     }
 
+    public static int keepBrowserOpenSeconds() {
+        String configured = value("mobilecity.keepBrowserOpenSeconds",
+                "MOBILECITY_KEEP_BROWSER_OPEN_SECONDS", "0");
+        try {
+            int seconds = Integer.parseInt(configured);
+            if (seconds < 0 || seconds > 300) {
+                throw new IllegalArgumentException(
+                        "mobilecity.keepBrowserOpenSeconds must be between 0 and 300");
+            }
+            return seconds;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "mobilecity.keepBrowserOpenSeconds must be an integer", e);
+        }
+    }
+
+    public static String loginUsername() {
+        return System.getenv("MOBILECITY_USERNAME");
+    }
+
+    public static String loginPassword() {
+        return System.getenv("MOBILECITY_PASSWORD");
+    }
+
     private static String value(String property, String environment, String fallback) {
         String systemValue = System.getProperty(property);
         if (systemValue != null && !systemValue.isBlank()) {

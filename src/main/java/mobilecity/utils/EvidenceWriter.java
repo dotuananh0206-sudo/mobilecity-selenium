@@ -21,22 +21,46 @@ public final class EvidenceWriter {
 
     public static synchronized void record(String testName, String status, String details) {
         Path log = Path.of(TestConfig.reportDirectory(), "test-execution.log");
-        String safeDetails = details == null ? "" : details.replaceAll("[\\r\\n]+", " ").trim();
+        String safeTestName = sanitize(testName);
+        String safeDetails = sanitize(details);
         String line = "%s | %s | %s | %s | %s%n".formatted(
                 TestRunContext.runId(),
                 LocalDateTime.now().format(TIMESTAMP),
-                testName,
+                safeTestName,
                 status,
                 safeDetails);
         try {
             Files.createDirectories(log.getParent());
             Files.writeString(log, line, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            LOGGER.info("{} {}: {}", status, testName, safeDetails);
+            LOGGER.info("{} {}: {}", status, safeTestName, safeDetails);
         } catch (IOException e) {
             LOGGER.error("Unable to write test execution log to {}", log, e);
             throw new IllegalStateException("Unable to persist test execution evidence", e);
         }
+    }
+
+    private static String sanitize(String value) {
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value;
+        for (String secretName : new String[] {
+                "MOBILECITY_USERNAME", "MOBILECITY_PASSWORD", "LT_USERNAME", "LT_ACCESS_KEY"
+        }) {
+            String secret = System.getenv(secretName);
+            if (secret != null && !secret.isEmpty()) {
+                sanitized = sanitized.replace(secret, "[REDACTED]");
+            }
+        }
+        return sanitized
+                .replaceAll(
+                        "(?i)([\"']?(?:username|login|password|passwd|access[_-]?key|token|secret)"
+                                + "[\"']?\\s*[:=]\\s*[\"']?)[^&\\s,\"'}]+",
+                        "$1[REDACTED]")
+                .replaceAll("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+", "$1[REDACTED]")
+                .replaceAll("[\\r\\n]+", " ")
+                .trim();
     }
 
     public static Path screenshotPath(String testName) throws IOException {
