@@ -13,7 +13,9 @@ class ProductTest extends BaseTest {
     @Test
     @DisplayName("TC-HOME-003 - Danh mục hiển thị sản phẩm có tên và giá")
     void categoryShowsNamedProduct() {
-        new HomePage(driver).open().openPhoneCategory();
+        HomePage homePage = new HomePage(driver).open();
+        assumeNoSiteChallenge();
+        homePage.openPhoneCategory();
         assumeNoSiteChallenge();
         ProductPage products = new ProductPage(driver);
 
@@ -58,5 +60,18 @@ class ProductTest extends BaseTest {
 
         assertTrue(productPage.hasLoadedPrimaryImage(),
                 "Ảnh chính của sản phẩm cần tải thành công");
+    }
+
+    @Test
+    @DisplayName("TC-PRODUCT-004 - Trang chi tiết hiển thị phần thông số công khai")
+    void productDetailsShowPublicSpecifications() {
+        driver.get(TestData.url("product.sample"));
+        assumeNoSiteChallenge();
+        ProductPage productPage = new ProductPage(driver);
+
+        assertTrue(productPage.hasProductDetails(),
+                "Trang sản phẩm cần hiển thị tiêu đề trước khi kiểm tra thông số");
+        assertTrue(productPage.hasSpecificationSection(),
+                "Trang sản phẩm cần hiển thị phần thông số công khai");
     }
 }

@@ -157,9 +157,15 @@ Trong lúc chạy, URL vẫn đổi vì mỗi test mở trang cần kiểm tra, 
 
 Một bài kiểm thử giỏ hàng bị JUnit hủy sẽ được ghi là bỏ qua trong Surefire và phân loại là `BLOCKED` trong sổ theo dõi dự án. Việc thiếu tệp artifact hoặc ảnh chụp không chứng minh bài kiểm thử thành công. Khi cập nhật hồ sơ dự án, hãy lưu cùng nhau Test Run ID, môi trường, phạm vi chính xác, kết quả và bằng chứng.
 
-Các tệp văn bản trong run dùng UTF-8: Maven được cấu hình qua `.mvn/jvm.config`, JVM của Surefire (kể cả stdout/stderr) được cấu hình riêng trong `pom.xml`, và `EvidenceWriter` ghi log bằng `StandardCharsets.UTF_8`. Kiểm thử hồi quy `EvidenceWriterTest` kiểm tra nội dung tiếng Việt sau khi đọc lại file evidence. Khi xem log trên Windows, mở bằng công cụ hỗ trợ UTF-8 hoặc đặt terminal ở UTF-8; không chuyển mã file sang ANSI.
+Các tệp văn bản trong run dùng UTF-8: `.editorconfig` đặt UTF-8 cho tệp văn bản, Maven được cấu hình qua `.mvn/jvm.config`, JVM và báo cáo Surefire được cấu hình riêng trong `pom.xml`, và `EvidenceWriter` ghi log bằng `StandardCharsets.UTF_8`. Kiểm thử hồi quy `EvidenceWriterTest` đọc lại nội dung tiếng Việt. Trên GitHub Actions, validator hiện quét nội dung văn bản và XML trong các báo cáo, tài liệu thuộc kho mã; các hồ sơ bàn giao bên ngoài thư mục kho không nằm trong phạm vi quét của CI. Nếu phát hiện lỗi mã hóa, workflow sẽ thất bại nhưng vẫn tải lên artifact kiểm thử để hỗ trợ điều tra. Khi chạy cục bộ, thực hiện validator sau Maven để kiểm tra kết quả:
 
-Các hồ sơ TestPlan/Run được tạo ngoài Maven nên không tự động nhận cấu hình mã hóa Maven. Khi cập nhật chúng bằng PowerShell, dùng `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` hoặc `[System.IO.File]::WriteAllLines(..., [System.Text.UTF8Encoding]::new($false))`; không chuyển chuỗi UTF-8 qua code page ANSI. Trước khi phát hành hồ sơ mới, chạy `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate_run_documents.ps1 -Directory "<thư_mục_run>"`. Validator quét nội dung text và phần XML trong DOCX/XLSX, đồng thời trả mã lỗi khác 0 nếu phát hiện dấu hiệu mojibake hoặc dấu `?` thay thế nằm giữa ký tự chữ; không phát hành run nếu bước này thất bại.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate_run_documents.ps1 -Directory .
+```
+
+Khi xem log trên Windows, mở bằng công cụ hỗ trợ UTF-8 hoặc đặt terminal ở UTF-8; không chuyển mã file sang ANSI.
+
+Các hồ sơ TestPlan/Run được tạo ngoài Maven không tự động nhận cấu hình mã hóa JVM. Khi tạo chúng bằng PowerShell, dùng `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` hoặc `[System.IO.File]::WriteAllLines(..., [System.Text.UTF8Encoding]::new($false))`; không chuyển chuỗi UTF-8 qua code page ANSI. Đặt hồ sơ trong kho để validator tự động quét ở CI, hoặc chạy validator trên đúng thư mục hồ sơ trước khi phát hành, ví dụ `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate_run_documents.ps1 -Directory "<thư_mục_run>"`. Validator đọc UTF-8 ở chế độ nghiêm ngặt, quét nội dung text và phần XML trong DOCX/XLSX, đồng thời trả mã lỗi khác 0 nếu phát hiện byte không hợp lệ, mojibake hoặc dấu `?` thay thế nằm giữa ký tự chữ; không phát hành run nếu bước này thất bại.
 
 ## Kho GitHub và đẩy thay đổi
 
@@ -186,7 +192,7 @@ Tệp workflow: `.github/workflows/selenium-test.yml`.
 - Sử dụng máy ảo `ubuntu-latest` do GitHub cung cấp, Temurin Java 17 và Chrome stable.
 - Chạy `mvn --batch-mode --no-transfer-progress clean test`.
 - Giới hạn thời gian mỗi job là 20 phút.
-- Tải báo cáo Surefire, nhật ký và ảnh chụp lên artifact `mobilecity-test-results-*`, kể cả khi Maven test thất bại.
+- Tải báo cáo Surefire, nhật ký và ảnh chụp lên artifact `mobilecity-test-results-*`, kể cả khi Maven test hoặc kiểm tra UTF-8 thất bại.
 - Kết quả Maven khác 0 sẽ làm workflow thất bại; tải artifact không biến một lần chạy thất bại thành thành công.
 
 GitHub Actions chạy trên máy ảo của GitHub; nó **không** chạy bên trong trang kho mã hoặc IDE cục bộ của bạn. Để xem một lần chạy, mở tab **Actions** của kho, chọn **MobileCity Selenium Tests**, rồi mở lần chạy tương ứng với commit cần xem. Để tải bằng chứng, mở **Summary** của lần chạy đã hoàn tất và tải artifact. Artifact được lưu trong 14 ngày; hãy tải xuống trước khi hết hạn nếu cần dùng cho báo cáo.
@@ -197,7 +203,7 @@ Lịch sử CI đã được xác minh trước khi thay đổi phạm vi:
 - [Lần chạy #2](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047533363): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-2`.
 - [Lần chạy #3](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38049266948): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức; artifact `mobilecity-test-results-3`.
 
-Các lần chạy CI cũ gặp Cloudflare security verification; raw failures/errors không được xác nhận là defect MobileCity. Lần chạy đầy đủ gần nhất trước khi thêm đăng nhập/giỏ hàng là `MC-20261010-234612`: dùng một cửa sổ Chrome hiển thị xuyên suốt và giữ trang cuối mở 60 giây sau khi chạy; tổng 12 phương thức gồm 11 UI và một kiểm thử hồi quy UTF-8, **11 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED**. Kết quả lịch sử này không xác minh luồng đăng nhập/giỏ hàng mới. Test giỏ hàng lúc đó bị chặn vì không tìm thấy liên kết công khai. Surefire XML/text và `reports/test-execution.log` được tạo theo UTF-8. Lần chạy CI chưa được thực hiện lại sau các thay đổi cục bộ này.
+Các lần chạy CI lịch sử gặp Cloudflare security verification; lỗi thô không được xác nhận là defect MobileCity. Lần chạy CI lịch sử gần nhất là workflow run #7 (`38160508776`), thất bại ở Maven/Selenium trên commit cũ `2ef5206`; log có timeout khi mở danh mục trước khi challenge được phân loại an toàn. Đây không phải kết quả của mã nguồn hiện tại và không chứng minh lỗi website. Lần chạy local đầy đủ mới nhất là `MC-20261013-083737`: 14 phương thức JUnit, **13 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED** (11 kiểm thử UI PASS, 2 kiểm thử EvidenceWriter PASS; `TC-CART-001` BLOCKED do thiếu credentials). Trong 17 case thiết kế, 11 PASS, 1 BLOCKED và 5 NOT EXECUTED. Môi trường local dùng Windows 11, Java 26.0.1, Maven 3.9.15, Chrome 154 headless; mã nguồn vẫn biên dịch theo release 17. Bằng chứng được lưu tại `Team/6. Evidence/execution-logs/MC-20261013-083737/`. Run này không xác nhận hành vi giỏ hàng, không chứng minh website hết lỗi và không thay thế GitHub Actions. CI chưa chạy lại cho thay đổi cục bộ này; không có thay đổi nào được push.
 
 ## Sự cố thường gặp
 

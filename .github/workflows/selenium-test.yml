@@ -46,6 +46,12 @@ jobs:
           MOBILECITY_PASSWORD: ${{ secrets.MOBILECITY_PASSWORD }}
         run: mvn --batch-mode --no-transfer-progress clean test
 
+      - name: Validate UTF-8 run documents
+        id: validate-utf8
+        if: always()
+        shell: pwsh
+        run: ./scripts/validate_run_documents.ps1 -Directory .
+
       - name: Upload test reports and logs
         if: always()
         uses: actions/upload-artifact@v4

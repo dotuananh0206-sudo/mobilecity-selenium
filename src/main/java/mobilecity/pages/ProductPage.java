@@ -11,7 +11,6 @@ public final class ProductPage extends BasePage {
     private static final By LISTED_PRODUCT_PRICE = By.cssSelector("div.product-list-item .price");
     private static final By PRODUCT_PRICE = By.cssSelector(".product-price-box .price");
     private static final By PRIMARY_PRODUCT_IMAGE = By.cssSelector("ul.product_image img");
-
     public ProductPage(WebDriver driver) {
         super(driver);
     }
@@ -54,5 +53,13 @@ public final class ProductPage extends BasePage {
 
     public boolean hasProductDetails() {
         return hasProductHeading() && !productHeading().isBlank();
+    }
+
+    public boolean hasSpecificationSection() {
+        ((JavascriptExecutor) driver).executeScript(
+                "window.scrollTo(0, document.body.scrollHeight)");
+        return wait.until(currentDriver -> currentDriver.findElement(By.tagName("body"))
+                .getText()
+                .contains("Thông Số Kỹ Thuật"));
     }
 }

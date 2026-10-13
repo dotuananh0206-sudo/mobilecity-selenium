@@ -5,6 +5,7 @@
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+$utf8 = [System.Text.UTF8Encoding]::new($false, $true)
 $patterns = @(
     '\u00C3[\u0080-\u00FF]',
     '\u00C2[\u0080-\u00FF]',
@@ -19,7 +20,12 @@ if (-not (Test-Path -LiteralPath $Directory -PathType Container)) {
 }
 
 $files = Get-ChildItem -LiteralPath $Directory -File -Recurse |
-    Where-Object { $_.Extension -in @(".md", ".txt", ".csv", ".json", ".xml", ".log", ".docx", ".xlsx") }
+    Where-Object {
+        $_.Extension -in @(
+            ".md", ".txt", ".csv", ".json", ".xml", ".log",
+            ".html", ".htm", ".properties", ".docx", ".xlsx"
+        )
+    }
 $findings = @()
 
 foreach ($file in $files) {
@@ -32,7 +38,7 @@ foreach ($file in $files) {
                 $reader = $null
                 try {
                     $reader = [System.IO.StreamReader]::new(
-                        $stream, [System.Text.Encoding]::UTF8, $true)
+                        $stream, $utf8, $false)
                     $xmlText = $reader.ReadToEnd()
                     [xml]$xml = $xmlText
                     $namespace = [System.Xml.XmlNamespaceManager]::new($xml.NameTable)
@@ -53,12 +59,24 @@ foreach ($file in $files) {
                     if ($reader) { $reader.Dispose() } else { $stream.Dispose() }
                 }
             }
+        } catch [System.Text.DecoderFallbackException] {
+            $findings += [pscustomobject]@{
+                File    = $file.FullName
+                Pattern = "Invalid UTF-8"
+            }
         } finally {
             $archive.Dispose()
         }
     } else {
-        $texts += [System.IO.File]::ReadAllText(
-            $file.FullName, [System.Text.Encoding]::UTF8)
+        try {
+            $texts += $utf8.GetString([System.IO.File]::ReadAllBytes($file.FullName))
+        } catch [System.Text.DecoderFallbackException] {
+            $findings += [pscustomobject]@{
+                File    = $file.FullName
+                Pattern = "Invalid UTF-8"
+            }
+            continue
+        }
     }
 
     $combinedText = $texts -join " "
