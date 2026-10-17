@@ -29,6 +29,10 @@ public final class LoginPage extends BasePage {
         super(driver);
     }
 
+    public boolean isAuthenticated() {
+        return driver.findElements(AUTHENTICATED_MARKER).stream().anyMatch(WebElement::isDisplayed);
+    }
+
     public boolean hasRequiredFields() {
         return isVisible(LOGIN_INPUT) && isVisible(PASSWORD_INPUT);
     }
@@ -67,7 +71,7 @@ public final class LoginPage extends BasePage {
     }
 
     private LoginOutcome currentOutcome() {
-        if (driver.findElements(AUTHENTICATED_MARKER).stream().anyMatch(WebElement::isDisplayed)) {
+        if (isAuthenticated()) {
             return LoginOutcome.AUTHENTICATED;
         }
         if (requiresVerification()) {

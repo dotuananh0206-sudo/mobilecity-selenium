@@ -84,8 +84,29 @@ Có thể cung cấp cấu hình tùy chọn bằng thuộc tính Maven hoặc b
 | `mobilecity.screenshotDir` | `MOBILECITY_SCREENSHOT_DIR` | `screenshots` |
 | `mobilecity.reportDir` | `MOBILECITY_REPORT_DIR` | `reports` |
 | `mobilecity.keepBrowserOpenSeconds` | `MOBILECITY_KEEP_BROWSER_OPEN_SECONDS` | `0` |
+| `mobilecity.cartChromeProfileDir` | `MOBILECITY_CART_CHROME_PROFILE_DIR` | Không bật |
+| `mobilecity.chromeDebuggerAddress` | `MOBILECITY_CHROME_DEBUGGER_ADDRESS` | Không bật |
 
 Kiểm thử giỏ hàng đọc riêng hai biến môi trường `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD`. Workflow dùng GitHub Secrets cùng tên; nếu secrets vắng mặt hoặc PR đến từ fork không được cấp secrets, test giỏ được ghi `BLOCKED`/skipped, không giả thành `PASS`. Không truyền thông tin đăng nhập bằng tham số Maven, không lưu chúng trong `.env`, dữ liệu kiểm thử, mã nguồn, README hoặc nhật ký.
+
+Mặc định test giỏ vẫn đăng nhập mới ở mỗi lần chạy. Để lưu phiên đăng nhập qua các lần chạy cục bộ, hãy đặt `MOBILECITY_CART_CHROME_PROFILE_DIR` tới một thư mục riêng cho Selenium (không dùng thư mục Chrome cá nhân), ví dụ `.runtime/mobilecity-cart-profile`. Lần chạy đầu cần `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD`; những lần sau test sẽ tái sử dụng phiên nếu website còn đăng nhập, và chỉ cần credentials lại khi phiên hết hạn. Thư mục `.runtime/` được Git bỏ qua và không bị xóa bởi `mvn clean`. Profile chứa cookie/thông tin xác thực của website: không chia sẻ hoặc commit thư mục này, không chạy đồng thời nhiều Chrome/test dùng chung profile, và logout/xóa profile khi không còn cần. Test thông thường không dùng profile này và vẫn xóa phiên trình duyệt như trước.
+
+Để test giỏ thao tác ngay trong một cửa sổ Chrome bạn mở (thay vì để ChromeDriver tự tạo cửa sổ khác), phải mở Chrome với cổng remote debugging rồi cấu hình `MOBILECITY_CHROME_DEBUGGER_ADDRESS=127.0.0.1:9222` trong cùng cửa sổ PowerShell chạy Maven. Chrome hiện tại cần được đóng hết trước khi mở lại bằng lệnh dưới đây; Chrome được kết nối sẽ không bị test đóng hay xóa cookie:
+
+```powershell
+$chrome = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+$profile = (Join-Path (Get-Location).Path ".runtime\mobilecity-cart-profile")
+Start-Process -FilePath $chrome -ArgumentList @("--remote-debugging-port=9222", "--user-data-dir=`"$profile`"", "https://mobilecity.vn/")
+```
+
+Sau khi lệnh trên mở Chrome và bạn xác nhận đã đăng nhập MobileCity, chạy test trong cùng thư mục dự án, trong một cửa sổ PowerShell khác:
+
+```powershell
+$env:MOBILECITY_CHROME_DEBUGGER_ADDRESS = "127.0.0.1:9222"
+mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test
+```
+
+Test sẽ thao tác trên tab Chrome đã kết nối; sau khi chạy xong Chrome vẫn mở. Đóng mọi cửa sổ Chrome trước khi khởi chạy bằng remote debugging để chắc chắn cổng 9222 và profile được áp dụng. Chỉ bật cổng này trên máy tin cậy; không mở cổng remote debugging ra mạng.
 
 ## Mở dự án bằng IntelliJ IDEA hoặc Eclipse
 
@@ -113,6 +134,7 @@ mvn -Dtest=HomeTest test
 Để chạy test giỏ hàng trong PowerShell, nhập tài khoản khi được nhắc. Mật khẩu được nhập ẩn, biến môi trường sẽ bị xóa sau khi Maven kết thúc:
 
 ```powershell
+$env:MOBILECITY_CART_CHROME_PROFILE_DIR = ".runtime/mobilecity-cart-profile"
 $env:MOBILECITY_USERNAME = Read-Host "Tên đăng nhập / email / số điện thoại"
 $securePassword = Read-Host "Mật khẩu" -AsSecureString
 $passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
@@ -126,6 +148,13 @@ finally {
     Remove-Item Env:MOBILECITY_PASSWORD -ErrorAction SilentlyContinue
     $securePassword.Dispose()
 }
+```
+
+Sau lần đăng nhập thành công đầu tiên, có thể bỏ bước nhập credentials ở các lần chạy sau nếu phiên trong profile còn hiệu lực:
+
+```powershell
+$env:MOBILECITY_CART_CHROME_PROFILE_DIR = ".runtime/mobilecity-cart-profile"
+mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test
 ```
 
 Test giỏ tìm liên kết hiển thị sau đăng nhập, không tự đoán URL. Nếu trang yêu cầu CAPTCHA/OTP hoặc thiếu nút cập nhật đã nhận diện, test dừng với `BLOCKED` và không thay đổi giỏ. Khi tự động tăng số lượng, test chờ xác nhận giao diện, tải lại giỏ để kiểm tra số lượng đã lưu, sau đó thử khôi phục và tải lại để xác nhận giá trị gốc. Ảnh chụp bị tắt cho các test đăng nhập/giỏ để tránh lưu thông tin tài khoản hoặc dữ liệu giỏ riêng tư; mọi test khác vẫn chụp khi thất bại nếu WebDriver hỗ trợ.

@@ -16,25 +16,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("JUnitTestClassNamingConvention")
 class CartTest extends BaseTest {
-    @Test
-    @DisplayName("TC-CART-001 - Đăng nhập, mở giỏ và tăng rồi khôi phục số lượng mặt hàng đầu tiên")
-    void loginAndTemporarilyChangeFirstCartItemQuantity() {
-        String username = TestConfig.loginUsername();
-        String password = TestConfig.loginPassword();
-        Assumptions.assumeTrue(username != null && !username.isBlank()
-                        && password != null && !password.isBlank(),
-                "BLOCKED: cần đặt MOBILECITY_USERNAME và MOBILECITY_PASSWORD để chạy kiểm thử giỏ hàng");
+    @Override
+    protected String persistentChromeProfileDirectory() {
+        return TestConfig.cartChromeProfileDirectory();
+    }
 
+    @Test
+    @DisplayName("TC-CART-001 - Đăng nhập nếu cần, mở giỏ và tăng rồi khôi phục số lượng mặt hàng đầu tiên")
+    void loginAndTemporarilyChangeFirstCartItemQuantity() {
         driver.get(TestData.url("login.url"));
         assumeNoSiteChallenge();
         LoginPage loginPage = new LoginPage(driver);
-        LoginOutcome loginOutcome = loginPage.login(username, password);
-        Assumptions.assumeFalse(loginOutcome == LoginOutcome.VERIFICATION_REQUIRED,
-                "BLOCKED: website yêu cầu CAPTCHA/OTP/xác minh; cần xử lý thủ công");
-        assertEquals(LoginOutcome.AUTHENTICATED, loginOutcome,
-                loginOutcome == LoginOutcome.INVALID_CREDENTIALS
-                        ? "Website từ chối thông tin đăng nhập đã cung cấp."
-                        : "Không xác minh được đăng nhập thành công do lỗi kỹ thuật hoặc thiếu dấu hiệu xác nhận.");
+        if (!loginPage.isAuthenticated()) {
+            String username = TestConfig.loginUsername();
+            String password = TestConfig.loginPassword();
+            Assumptions.assumeTrue(username != null && !username.isBlank()
+                            && password != null && !password.isBlank(),
+                    "BLOCKED: cần đăng nhập trước hoặc đặt MOBILECITY_USERNAME và MOBILECITY_PASSWORD");
+
+            LoginOutcome loginOutcome = loginPage.login(username, password);
+            Assumptions.assumeFalse(loginOutcome == LoginOutcome.VERIFICATION_REQUIRED,
+                    "BLOCKED: website yêu cầu CAPTCHA/OTP/xác minh; cần xử lý thủ công");
+            assertEquals(LoginOutcome.AUTHENTICATED, loginOutcome,
+                    loginOutcome == LoginOutcome.INVALID_CREDENTIALS
+                            ? "Website từ chối thông tin đăng nhập đã cung cấp."
+                            : "Không xác minh được đăng nhập thành công do lỗi kỹ thuật hoặc thiếu dấu hiệu xác nhận.");
+        }
         assumeNoSiteChallenge();
 
         HomePage homePage = new HomePage(driver);

@@ -35,6 +35,23 @@ public final class TestConfig {
         return value("mobilecity.reportDir", "MOBILECITY_REPORT_DIR", "reports");
     }
 
+    public static String cartChromeProfileDirectory() {
+        String systemValue = System.getProperty("mobilecity.cartChromeProfileDir");
+        if (systemValue != null && !systemValue.isBlank()) {
+            return systemValue.trim();
+        }
+        String environmentValue = System.getenv("MOBILECITY_CART_CHROME_PROFILE_DIR");
+        return environmentValue == null || environmentValue.isBlank()
+                ? null
+                : environmentValue.trim();
+    }
+
+    public static String chromeDebuggerAddress() {
+        String configured = value("mobilecity.chromeDebuggerAddress",
+                "MOBILECITY_CHROME_DEBUGGER_ADDRESS", "");
+        return configured.isBlank() ? null : configured;
+    }
+
     public static int keepBrowserOpenSeconds() {
         String configured = value("mobilecity.keepBrowserOpenSeconds",
                 "MOBILECITY_KEEP_BROWSER_OPEN_SECONDS", "0");

@@ -1,4 +1,5 @@
 target/
+.runtime/
 reports/*.log
 screenshots/*
 test-results/*
