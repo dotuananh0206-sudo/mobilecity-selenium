@@ -49,8 +49,10 @@ Kiểm thử giỏ hàng cần một tài khoản thử nghiệm đã được p
 ├── src/
 │   ├── main/java/mobilecity/
 │   │   ├── config/                      # Cấu hình trình duyệt và kiểm thử
+│   │   ├── manager/                     # Ứng dụng desktop JavaFX, runner và dịch vụ kết quả
 │   │   ├── pages/                       # Các Page Object
 │   │   └── utils/                       # Tiện ích dữ liệu kiểm thử và bằng chứng
+│   ├── main/resources/mobilecity/manager/app.css # Theme CSS cho giao diện JavaFX
 │   └── test/
 │       ├── java/mobilecity/
 │       │   ├── base/                    # Vòng đời WebDriver và bằng chứng lỗi
@@ -64,6 +66,30 @@ Kiểm thử giỏ hàng cần một tài khoản thử nghiệm đã được p
 ```
 
 `src/test/java` chứa các lớp kiểm thử. `src/main/java` chứa Page Object, cấu hình và tiện ích có thể tái sử dụng. Maven Surefire tạo `target/surefire-reports/`; thư mục này sẽ bị xóa và tạo lại khi chạy `mvn clean`. `screenshots/` chứa ảnh chụp khi một phương thức kiểm thử thất bại và phiên trình duyệt vẫn còn hoạt động. `reports/test-execution.log` lưu kết quả kiểm thử cục bộ.
+
+## Ứng dụng desktop quản lý kiểm thử
+
+Ứng dụng Main được triển khai bằng JavaFX. Từ thư mục dự án, chạy:
+
+```powershell
+mvn javafx:run
+```
+
+Trên Windows, có thể nhấp đúp vào [`run.bat`](./run.bat) trong thư mục dự án để khởi chạy. File tự chuyển về đúng thư mục dự án trước khi gọi Maven; nếu thiếu Maven hoặc ứng dụng khởi chạy lỗi, cửa sổ sẽ hiển thị thông báo để bạn xem nguyên nhân.
+
+Ứng dụng có các màn **Tổng quan**, **Danh sách test case**, **Chạy kiểm thử**, **Kết quả kiểm thử**, **Quản lý lỗi**, **Báo cáo kiểm thử**, **Lịch sử chạy** và **Cấu hình hệ thống**. Bố cục dùng sidebar rộng 240 px, nền sáng, màu navy/xanh dương và kiểu chữ Segoe UI có hỗ trợ tiếng Việt. Cửa sổ tối thiểu 1280×720; nội dung mỗi trang có thể cuộn dọc khi vượt quá chiều cao cửa sổ. Số liệu mẫu hiển thị trong prototype Figma không được dùng.
+
+- Catalog giao diện ánh xạ tới 12 phương thức Selenium và 9 unit test đang có. Test case chỉ được chọn/chạy khi có method tương ứng trong mã nguồn.
+- Màn **Chạy kiểm thử tự động** chia thành cấu hình/trạng thái và danh sách test/nhật ký theo hai cột. Chọn **Toàn bộ test case** hoặc **Chọn test case** rồi nhấn **Bắt đầu kiểm thử**; lựa chọn được chuyển tới Maven Surefire với selector `-Dtest=Class#method`. Test Selenium chạy trong tiến trình Maven nền, không chiếm luồng giao diện.
+- Log Maven và tiến độ JUnit được cập nhật trong lúc chạy: phần trăm tăng theo từng test hoàn tất, đồng thời hiển thị test đang thực thi; không ước lượng tiến độ giả trong khi một test còn chạy. Nút dừng gửi marker mà JUnit kiểm tra trước mỗi test: test đang thực thi được phép hoàn tất (bao gồm bước khôi phục giỏ hàng), test chưa bắt đầu được bỏ qua. Ứng dụng chỉ ghi nhận đã dừng sau khi tiến trình Maven kết thúc; không kill cưỡng bức Chrome hoặc Selenium. Nếu một test không kết thúc, UI vẫn báo đang chờ và không tuyên bố đã dừng.
+- Kết quả được đọc từ XML Surefire của chính lần chạy đó. Mỗi lần chạy từ UI có thư mục riêng `target/surefire-reports/GUI-*`, tránh trộn XML còn sót lại. Test không có kết quả trong phạm vi chọn được ghi `NOT EXECUTED`; skipped có thông báo BLOCKED được ghi `BLOCKED`.
+- Dashboard tự đọc lại báo cáo JUnit mới nhất khi mở hoặc làm mới: ưu tiên lần chạy GUI mới nhất, nhưng chọn báo cáo Surefire mặc định nếu được cập nhật sau lần chạy GUI. Các thẻ hiển thị số test đã chạy/tổng, PASS, FAIL và tỷ lệ thành công; biểu đồ phân bố thêm BLOCKED và chưa thực thi. Mục lỗi chỉ liệt kê test JUnit `FAIL`, không tự tạo mã bug, severity hoặc kết luận lỗi thuộc website.
+- Surefire XML/text và `reports/test-execution.log` là báo cáo/log thật của dự án. UI hỗ trợ mở các tệp này và xuất CSV từ kết quả JUnit; nút mở thư mục báo cáo dùng trình quản lý desktop, có fallback Explorer trên Windows. Các bảng kết quả, lỗi và lịch sử co giãn theo chiều rộng thay vì dồn khoảng trắng vào cột cuối. Dự án chưa cấu hình bộ tạo HTML nên ứng dụng không tuyên bố có báo cáo HTML.
+- Nút mở ảnh chỉ tìm ảnh PNG thật do failure extension tạo trong thư mục ảnh đã cấu hình. Test đăng nhập/giỏ hàng tiếp tục bỏ qua chụp ảnh để bảo vệ dữ liệu nhạy cảm.
+- URL, headless, thời gian chờ, thư mục ảnh và thư mục log/báo cáo được lưu ngoài repository tại `%USERPROFILE%\.mobilecity-test-manager\settings.properties` (Windows) hoặc `$HOME/.mobilecity-test-manager/settings.properties` và được truyền qua các system property mà `TestConfig` đã hỗ trợ. Tài khoản không được lưu trong cấu hình; test giỏ hàng vẫn đọc credentials từ biến môi trường hiện có.
+- Lịch sử mỗi run được lưu thành tệp properties trong `%USERPROFILE%\.mobilecity-test-manager\history\` (Windows) hoặc `$HOME/.mobilecity-test-manager/history/`. Log đầu ra riêng của runner và các tệp CSV được lưu trong thư mục `logs/` và `exports/` bên cạnh.
+
+Website và Chrome không được hiển thị là đã kết nối trước khi kiểm tra. Mở ứng dụng hoặc lưu cấu hình không khởi động trình duyệt; môi trường WebDriver chỉ được xác nhận khi chạy test thật. Các test sử dụng OTP/CAPTCHA, credentials, WebDriverWait, ghi log và chụp ảnh vẫn giữ nguyên hành vi hiện có.
 
 ## Yêu cầu và thiết lập
 
@@ -118,6 +144,14 @@ Test sẽ thao tác trên tab Chrome đã kết nối; sau khi chạy xong Chrom
 Trong IntelliJ IDEA, chọn **File → Open** rồi chọn thư mục này hoặc `pom.xml`. Trong Eclipse, chọn **File → Import → Existing Maven Projects**, chọn thư mục dự án rồi hoàn tất.
 
 ## Chạy kiểm thử trên máy
+
+Ứng dụng JavaFX được biên dịch và khởi chạy qua plugin Maven đã khai báo:
+
+```powershell
+mvn javafx:run
+```
+
+Chạy test từ giao diện bằng cách mở **Chạy kiểm thử**, chọn **Toàn bộ test case** hoặc **Chọn test case**, đánh dấu các dòng cần chạy nếu chọn chế độ sau, rồi nhấn **Bắt đầu kiểm thử**. URL, thời gian chờ và headless nhập tại màn hình này áp dụng cho lần chạy; lưu mặc định tại **Cấu hình hệ thống**. Chấp nhận hộp thoại cảnh báo trước khi chạy test giỏ hàng. Kết quả, log và trạng thái được cập nhật từ tiến trình Maven/JUnit. Hủy lần chạy bằng **Dừng an toàn**; trạng thái chỉ đổi thành đã dừng sau khi tiến trình kết thúc được xác nhận.
 
 Chạy toàn bộ bộ kiểm thử tự động đã được triển khai từ thư mục dự án:
 
