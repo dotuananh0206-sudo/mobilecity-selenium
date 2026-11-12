@@ -1,7 +1,6 @@
 package mobilecity.tests;
 
 import mobilecity.base.BaseTest;
-import mobilecity.pages.HomePage;
 import mobilecity.pages.ProductPage;
 import mobilecity.utils.TestData;
 import org.junit.jupiter.api.DisplayName;
@@ -10,21 +9,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProductTest extends BaseTest {
-    @Test
-    @DisplayName("TC-HOME-003 - Danh mục hiển thị sản phẩm có tên và giá")
-    void categoryShowsNamedProduct() {
-        HomePage homePage = new HomePage(driver).open();
-        assumeNoSiteChallenge();
-        homePage.openPhoneCategory();
-        assumeNoSiteChallenge();
-        ProductPage products = new ProductPage(driver);
-
-        assertTrue(products.firstListedProductName().length() > 0,
-                "Danh mục cần hiển thị tên sản phẩm");
-        assertTrue(products.firstListedProductPrice().matches("(?s).*\\d.*"),
-                "Thẻ sản phẩm cần hiển thị giá nếu giá được công bố");
-    }
-
     @Test
     @DisplayName("TC-PRODUCT-001 - Mở trang chi tiết từ danh mục")
     void listedProductOpensMatchingDetailPage() {

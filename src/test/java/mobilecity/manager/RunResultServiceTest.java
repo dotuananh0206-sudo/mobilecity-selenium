@@ -19,8 +19,8 @@ class RunResultServiceTest {
         String xml = """
                 <?xml version="1.0" encoding="UTF-8"?>
                 <testsuite name="mobilecity.tests.HomeTest" tests="2" errors="0" failures="1" skipped="0">
-                  <testcase classname="mobilecity.tests.HomeTest" name="homepageLoadsWithTitle" time="0.5"/>
-                  <testcase classname="mobilecity.tests.HomeTest" name="homepageOpensPhoneCategory" time="1.0">
+                  <testcase classname="mobilecity.tests.HomeTest" name="testTC01_LoadHomePage" time="0.5"/>
+                  <testcase classname="mobilecity.tests.HomeTest" name="testTC03_NavigateMainCategories" time="1.0">
                     <failure message="Assertion failed">Stack detail</failure>
                   </testcase>
                   <testcase classname="mobilecity.tests.SearchTest" name="searchReturnsMatchingProducts" time="0">
@@ -34,8 +34,8 @@ class RunResultServiceTest {
         Files.writeString(reports.resolve("TEST-mobilecity.tests.HomeTest.xml"),
                 xml, StandardCharsets.UTF_8);
         List<TestCaseDefinition> selected = List.of(
-                TestCaseCatalog.findById("TC-HOME-001").orElseThrow(),
-                TestCaseCatalog.findById("TC-HOME-002").orElseThrow(),
+                TestCaseCatalog.findById("TC_01").orElseThrow(),
+                TestCaseCatalog.findById("TC_03").orElseThrow(),
                 TestCaseCatalog.findById("TC-SEARCH-002").orElseThrow(),
                 TestCaseCatalog.findById("TC-SEARCH-003").orElseThrow(),
                 TestCaseCatalog.findById("TC-PRODUCT-003").orElseThrow());

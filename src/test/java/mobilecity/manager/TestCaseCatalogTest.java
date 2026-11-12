@@ -18,8 +18,10 @@ class TestCaseCatalogTest {
             assertTrue(selectors.add(testCase.selector()), "JUnit selectors must be unique");
         }
 
-        assertEquals(21, TestCaseCatalog.all().size());
-        assertEquals("homepageLoadsWithTitle",
-                TestCaseCatalog.findById("TC-HOME-001").orElseThrow().methodName());
+        assertEquals(35, TestCaseCatalog.all().size());
+        assertEquals("testTC01_LoadHomePage",
+                TestCaseCatalog.findById("TC_01").orElseThrow().methodName());
+        assertEquals("testDM05_OpenPhoneCategoryRoot",
+                TestCaseCatalog.findById("DM_05").orElseThrow().methodName());
     }
 }

@@ -1,286 +1,226 @@
-# Bộ kiểm thử giao diện Selenium cho MobileCity
+# MobileCity Selenium Test Manager
 
-Dự án Maven cung cấp bộ kiểm thử giao diện Selenium WebDriver cho các chức năng trang chủ/danh mục, tìm kiếm, chi tiết sản phẩm và giỏ hàng của [MobileCity](https://mobilecity.vn/). Bộ kiểm thử sử dụng Java 17+, JUnit 5 và mô hình Page Object.
+Dự án kiểm thử giao diện website [MobileCity](https://mobilecity.vn/) bằng Java, Selenium WebDriver, JUnit 5 và Page Object Model. Ứng dụng desktop JavaFX hỗ trợ chọn test, chạy Maven và xem kết quả; đây là dự án QA, không phải mã nguồn của website MobileCity.
 
-## Mục tiêu và an toàn
+## Mục lục
 
-- Kiểm tra điều hướng và sản phẩm hiển thị trên trang chủ/danh mục.
-- Kiểm tra tìm kiếm hợp lệ, trạng thái không có kết quả, ràng buộc từ khóa rỗng và điều hướng từ kết quả đến chi tiết.
-- Kiểm tra tên, giá và ảnh chính trên trang chi tiết sản phẩm.
-- Đăng nhập bằng thông tin được cung cấp tạm thời qua biến môi trường, mở giỏ hàng qua liên kết website hiển thị, tăng số lượng mặt hàng đầu tiên một đơn vị rồi tải lại giỏ để xác minh và khôi phục số lượng ban đầu.
-- Không gửi OTP, mua hàng, đặt đơn, checkout hay thanh toán.
-- Tái sử dụng bộ chọn phần tử và cấu hình trình duyệt trong các lớp page/configuration.
-- Lưu kết quả Maven thực tế và bằng chứng khi kiểm thử thất bại sau mỗi lần chạy.
-- Chỉ gửi truy vấn tìm kiếm công khai không chứa dữ liệu cá nhân; thông tin đăng nhập chỉ được đọc từ biến môi trường khi chạy test và không được ghi vào log.
-- Không vượt CAPTCHA hoặc cơ chế chống bot. Ghi nhận luồng bị chặn là `BLOCKED`; không đánh dấu bài kiểm thử chưa chạy là `PASS`.
-- Đây là bộ kiểm thử khói trên trang công khai, không phải bằng chứng rằng toàn bộ trang web không có lỗi.
+- [Mục tiêu kiểm thử](#mục-tiêu-kiểm-thử)
+- [Phạm vi kiểm thử](#phạm-vi-kiểm-thử)
+- [Công nghệ và kiến trúc](#công-nghệ-và-kiến-trúc)
+- [Ứng dụng JavaFX](#ứng-dụng-javafx)
+- [Yêu cầu và cài đặt](#yêu-cầu-và-cài-đặt)
+- [Chạy ứng dụng và kiểm thử](#chạy-ứng-dụng-và-kiểm-thử)
+- [Xem báo cáo và bằng chứng](#7-xem-báo-cáo-và-bằng-chứng)
+- [GitHub Actions](#github-actions)
+- [An toàn](#an-toàn)
+- [Tài liệu và phát triển tiếp](#tài-liệu-và-phát-triển-tiếp)
 
-## Phạm vi kiểm thử hiện tại
+## Mục tiêu kiểm thử
 
-| Module | Phạm vi |
-| --- | --- |
-| `HOME` | Tải trang chủ, logo, điều hướng đến danh mục điện thoại và thẻ sản phẩm/giá công khai |
-| `SEARCH` | Trường bắt buộc, kết quả khớp từ khóa, trạng thái không có kết quả và mở chi tiết từ kết quả |
-| `PRODUCT` | Mở trang chi tiết từ danh mục; kiểm tra giá và ảnh chính |
-| `CART` | Đăng nhập bằng tài khoản thử nghiệm, tìm liên kết giỏ hàng trên trang đã đăng nhập, mở giỏ, tăng số lượng mặt hàng đầu tiên một đơn vị và khôi phục số lượng cũ; `BLOCKED` nếu thiếu credentials, CAPTCHA/OTP hoặc không xác minh được điều khiển số lượng |
+- Kiểm tra hiển thị và điều hướng trên trang chủ, danh mục và trang sản phẩm.
+- Kiểm tra tìm kiếm, các lối vào lọc/sắp xếp hiện có và thông tin sản phẩm công khai.
+- Mở rộng dần phạm vi tới tin tức/khuyến mãi, thông tin liên hệ/cửa hàng và chính sách bảo hành.
+- Thu thập kết quả thực thi và bằng chứng; tự động hóa các trường hợp phù hợp với Selenium.
 
-Kiểm thử giỏ hàng cần một tài khoản thử nghiệm đã được phép sử dụng. Nó không xóa sản phẩm và không tiến hành mua hàng; thay đổi số lượng được khôi phục về giá trị ban đầu. Các thao tác giỏ chỉ được thực hiện nếu trang hiển thị ô số lượng và nút cập nhật gắn với một mặt hàng.
+## Phạm vi kiểm thử
 
-## Công nghệ
+Bảng dưới đây phân biệt thiết kế Test Case, trạng thái tự động hóa và kết quả lần chạy local gần nhất. Chi tiết trạng thái theo mã nằm trong [TestExecutionReport.md](./TestExecutionReport.md); các ca HOME/CATEGORY và độ bao phủ Use Case nằm trong [TestCases_Home_Category.md](./TestCases_Home_Category.md).
 
-| Thành phần | Công dụng |
-| --- | --- |
-| Java 17+ | Cài đặt bài kiểm thử và Page Object; phiên bản biên dịch Maven được đặt là 17 |
-| Maven | Quản lý phụ thuộc và vòng đời build/kiểm thử |
-| Selenium WebDriver | Tự động hóa trình duyệt; Selenium Manager xử lý ChromeDriver |
-| JUnit 5 | Framework kiểm thử và các phép khẳng định |
-| Chrome | Trình duyệt chạy cục bộ và trên GitHub Actions |
-| Maven Surefire | Chạy JUnit và tạo báo cáo XML/văn bản |
-| GitHub Actions | Chạy bộ kiểm thử trên máy ảo Ubuntu do GitHub cung cấp |
+| STT | Module | Chức năng | Nội dung kiểm thử | Trạng thái hiện tại |
+|---:|---|---|---|---|
+| 1 | `HOME` | Xem trang chủ | Giao diện, Header, banner/video, sản phẩm, điều hướng, viewport và LCP. Có 12 ca được thiết kế; 9 phương thức HOME được tự động hóa. | Đã thiết kế và tự động hóa một phần; lần chạy gần nhất có PASS, `TC_11` FAIL, `TC_05`/`TC_08` BLOCKED; các ca chưa có code được nêu trong báo cáo. |
+| 2 | `CATEGORY` | Xem danh mục sản phẩm | Menu đa cấp, đổi/đóng menu, điều hướng hãng/phân loại và viewport điện thoại. Có 10 ca được thiết kế; 7 phương thức được tự động hóa. | Đã thiết kế và tự động hóa một phần; `DM_01`–`DM_07` PASS, `DM_10` FAIL; `DM_08`/`DM_09` chưa thực thi do thiếu fixture/môi trường an toàn. |
+| 3 | `SEARCH` | Tìm kiếm sản phẩm | Trường bắt buộc, kết quả khớp, trạng thái rỗng và mở trang chi tiết. | Có 4 Test Case và 4 phương thức Selenium; PASS trong lần chạy gần nhất. |
+| 4 | `FILTER & SORT` | Lọc và sắp xếp sản phẩm | Lối tắt hãng từ Home và sắp xếp giá; chưa có bộ Test Case độc lập riêng cho module này. | Tự động hóa một phần qua `TC_07` và `TC_08`; `TC_07` PASS, `TC_08` BLOCKED do danh sách sau sort hiển thị “Liên hệ” thay vì đủ giá số. |
+| 5 | `PRODUCT` | Xem chi tiết sản phẩm | Mở chi tiết, giá công khai, ảnh chính và thông số công khai. | Có 4 Test Case và 4 phương thức Selenium; PASS trong lần chạy gần nhất. |
+| 6 | `NEWS & PROMOTION` | Xem tin tức và khuyến mãi | Chưa có Test Case nghiệp vụ hoặc lớp Selenium độc lập được xác nhận. | Chưa triển khai; cần đặc tả/fixture và tiêu chí kiểm thử trước khi tự động hóa. |
+| 7 | `CONTACT & STORE` | Xem thông tin liên hệ và hệ thống cửa hàng | Chưa có Test Case nghiệp vụ hoặc lớp Selenium độc lập được xác nhận. | Chưa triển khai; cần đặc tả và dữ liệu đối chiếu được phê duyệt. |
+| 8 | `WARRANTY POLICY` | Xem chính sách bảo hành | Chưa có Test Case nghiệp vụ hoặc lớp Selenium độc lập được xác nhận. | Chưa triển khai; cần đặc tả và tiêu chí kiểm thử trước khi tự động hóa. |
 
-`pom.xml` khai báo các phụ thuộc, phiên bản, phiên bản Java biên dịch và cấu hình Surefire. Đây là tệp mô tả dự án Maven; chỉnh sửa tệp này khi cần thay đổi phụ thuộc hoặc plugin build.
+`CartTest` là kiểm thử bổ sung ngoài tám module chính: có một phương thức Selenium, nhưng lần chạy gần nhất bị `BLOCKED` do thiếu thông tin đăng nhập thử nghiệm. Không dùng số lượng Unit Test để thay cho Test Case nghiệp vụ.
 
-## Cấu trúc dự án
+## Công nghệ và kiến trúc
+
+| Công nghệ | Vai trò |
+|---|---|
+| Java 17+ | Ngôn ngữ chạy ứng dụng và viết test; mã được biên dịch theo Java 17. |
+| Maven | Tải thư viện, biên dịch mã và điều phối các lệnh chạy ứng dụng/test. |
+| Selenium WebDriver 4.29.0 | Điều khiển Chrome để thao tác và kiểm tra giao diện website; Selenium Manager hỗ trợ tìm ChromeDriver. |
+| JUnit Jupiter 5.11.4 | Khai báo, nhóm và chạy các test; ghi nhận kết quả từng ca. |
+| JavaFX 17.0.14 | Xây dựng giao diện desktop để chọn test, chạy và xem kết quả. |
+| Maven Surefire 3.5.2 | Kết nối Maven với JUnit, tạo báo cáo test XML và văn bản. |
+| SLF4J 2.0.16 | Ghi nhật ký hoạt động của ứng dụng và quá trình test. |
+| GitHub Actions | Tự động chạy test trên CI khi push, tạo pull request hoặc chạy workflow thủ công. |
+
+### Cấu trúc và trách nhiệm
+
+Mã nguồn chia theo vai trò: Page Object đóng gói locator và thao tác trên từng trang; test gọi các thao tác đó để kiểm tra hành vi. `WebDriverWait` giúp chờ điều kiện giao diện thay vì dựa vào thời gian cố định.
 
 ```text
 .
-├── .github/workflows/selenium-test.yml  # Quy trình CI
-├── pom.xml                              # Phụ thuộc và cấu hình build/kiểm thử Maven
+├── .github/workflows/selenium-test.yml   # Workflow CI chạy test và lưu artifact
+├── .mvn/jvm.config                       # Cấu hình JVM cho Maven
+├── scripts/validate_run_documents.ps1    # Kiểm tra mã hóa UTF-8 tài liệu/kết quả
 ├── src/
 │   ├── main/java/mobilecity/
-│   │   ├── config/                      # Cấu hình trình duyệt và kiểm thử
-│   │   ├── manager/                     # Ứng dụng desktop JavaFX, runner và dịch vụ kết quả
-│   │   ├── pages/                       # Các Page Object
-│   │   └── utils/                       # Tiện ích dữ liệu kiểm thử và bằng chứng
-│   ├── main/resources/mobilecity/manager/app.css # Theme CSS cho giao diện JavaFX
+│   │   ├── config/                       # URL, trình duyệt và cấu hình chạy test
+│   │   ├── manager/                      # Ứng dụng JavaFX, catalog, điều phối/kết quả
+│   │   ├── pages/                        # Page Object: locator và thao tác trang
+│   │   └── utils/                        # Tiện ích như log và lưu bằng chứng
+│   ├── main/resources/mobilecity/manager/ # Tài nguyên giao diện JavaFX
 │   └── test/
 │       ├── java/mobilecity/
-│       │   ├── base/                    # Vòng đời WebDriver và bằng chứng lỗi
-│       │   └── tests/                   # Các lớp kiểm thử JUnit
-│       └── resources/testdata/          # Dữ liệu kiểm thử giả lập/công khai
-├── screenshots/                         # Ảnh chụp khi thất bại (được tạo tự động)
-├── reports/                             # Nhật ký chạy cục bộ (được tạo tự động)
-├── target/surefire-reports/             # Báo cáo XML và văn bản của Maven Surefire
-├── .env.example                         # Chỉ chứa tên biến/giá trị mẫu, không có bí mật
-└── .gitignore
+│       │   ├── base/                     # Lớp nền và extension JUnit dùng chung
+│       │   ├── manager/                  # Unit test cho thành phần quản lý
+│       │   ├── tests/                    # Selenium test theo chức năng
+│       │   └── utils/                    # Unit test cho tiện ích
+│       └── resources/                    # Tài nguyên phục vụ test
+├── screenshots/                         # Ảnh chụp test khi thất bại
+├── reports/                              # Nhật ký chạy local
+├── pom.xml
+├── run.bat
+├── TestCases_Home_Category.md
+└── TestExecutionReport.md
 ```
 
-`src/test/java` chứa các lớp kiểm thử. `src/main/java` chứa Page Object, cấu hình và tiện ích có thể tái sử dụng. Maven Surefire tạo `target/surefire-reports/`; thư mục này sẽ bị xóa và tạo lại khi chạy `mvn clean`. `screenshots/` chứa ảnh chụp khi một phương thức kiểm thử thất bại và phiên trình duyệt vẫn còn hoạt động. `reports/test-execution.log` lưu kết quả kiểm thử cục bộ.
+`target/surefire-reports/` được Maven tạo khi chạy test. `screenshots/`, `reports/` và `target/` là đầu ra runtime; không phải tài liệu nguồn. Chưa có ảnh chụp phù hợp của giao diện JavaFX trong repository để đưa vào README.
 
-## Ứng dụng desktop quản lý kiểm thử
+## Ứng dụng JavaFX
 
-Ứng dụng Main được triển khai bằng JavaFX. Từ thư mục dự án, chạy:
+Ứng dụng có các màn Tổng quan, Danh sách test case, Chạy kiểm thử tự động, Kết quả kiểm thử, Quản lý lỗi, Báo cáo kiểm thử, Lịch sử chạy và Cấu hình hệ thống. Có thể chạy cả suite hoặc chọn các test đã ánh xạ trong catalog. Cấu hình local của ứng dụng được lưu ngoài repository; xem [hướng dẫn Test Manager](./docs/TEST_MANAGER.md).
+
+## Yêu cầu và cài đặt
+
+- JDK 17 trở lên; Maven 3.9 trở lên.
+- Google Chrome khi chạy Selenium cục bộ.
+- Kết nối mạng tới MobileCity và dịch vụ tải/tìm ChromeDriver của Selenium Manager.
+- Kiểm thử giỏ hàng cần tài khoản thử nghiệm được phép sử dụng; CAPTCHA/OTP có thể khiến ca bị BLOCKED.
 
 ```powershell
-mvn javafx:run
+git clone https://github.com/dotuananh0206-sudo/mobilecity-selenium.git
+Set-Location mobilecity-selenium
 ```
 
-Trên Windows, có thể nhấp đúp vào [`run.bat`](./run.bat) trong thư mục dự án để khởi chạy. File tự chuyển về đúng thư mục dự án trước khi gọi Maven; nếu thiếu Maven hoặc ứng dụng khởi chạy lỗi, cửa sổ sẽ hiển thị thông báo để bạn xem nguyên nhân.
+Mở `pom.xml` dưới dạng Maven project trong IDE và đặt JDK 17+. Các dependency được tải theo manifest Maven. Không cần cài ChromeDriver riêng trong cấu hình thông thường.
 
-Ứng dụng có các màn **Tổng quan**, **Danh sách test case**, **Chạy kiểm thử**, **Kết quả kiểm thử**, **Quản lý lỗi**, **Báo cáo kiểm thử**, **Lịch sử chạy** và **Cấu hình hệ thống**. Bố cục dùng sidebar rộng 240 px, nền sáng, màu navy/xanh dương và kiểu chữ Segoe UI có hỗ trợ tiếng Việt. Cửa sổ tối thiểu 1280×720; nội dung mỗi trang có thể cuộn dọc khi vượt quá chiều cao cửa sổ. Số liệu mẫu hiển thị trong prototype Figma không được dùng.
+## Chạy ứng dụng và kiểm thử
 
-- Catalog giao diện ánh xạ tới 12 phương thức Selenium và 9 unit test đang có. Test case chỉ được chọn/chạy khi có method tương ứng trong mã nguồn.
-- Màn **Chạy kiểm thử tự động** chia thành cấu hình/trạng thái và danh sách test/nhật ký theo hai cột. Chọn **Toàn bộ test case** hoặc **Chọn test case** rồi nhấn **Bắt đầu kiểm thử**; lựa chọn được chuyển tới Maven Surefire với selector `-Dtest=Class#method`. Test Selenium chạy trong tiến trình Maven nền, không chiếm luồng giao diện.
-- Log Maven và tiến độ JUnit được cập nhật trong lúc chạy: phần trăm tăng theo từng test hoàn tất, đồng thời hiển thị test đang thực thi; không ước lượng tiến độ giả trong khi một test còn chạy. Nút dừng gửi marker mà JUnit kiểm tra trước mỗi test: test đang thực thi được phép hoàn tất (bao gồm bước khôi phục giỏ hàng), test chưa bắt đầu được bỏ qua. Ứng dụng chỉ ghi nhận đã dừng sau khi tiến trình Maven kết thúc; không kill cưỡng bức Chrome hoặc Selenium. Nếu một test không kết thúc, UI vẫn báo đang chờ và không tuyên bố đã dừng.
-- Kết quả được đọc từ XML Surefire của chính lần chạy đó. Mỗi lần chạy từ UI có thư mục riêng `target/surefire-reports/GUI-*`, tránh trộn XML còn sót lại. Test không có kết quả trong phạm vi chọn được ghi `NOT EXECUTED`; skipped có thông báo BLOCKED được ghi `BLOCKED`.
-- Dashboard tự đọc lại báo cáo JUnit mới nhất khi mở hoặc làm mới: ưu tiên lần chạy GUI mới nhất, nhưng chọn báo cáo Surefire mặc định nếu được cập nhật sau lần chạy GUI. Các thẻ hiển thị số test đã chạy/tổng, PASS, FAIL và tỷ lệ thành công; biểu đồ phân bố thêm BLOCKED và chưa thực thi. Mục lỗi chỉ liệt kê test JUnit `FAIL`, không tự tạo mã bug, severity hoặc kết luận lỗi thuộc website.
-- Surefire XML/text và `reports/test-execution.log` là báo cáo/log thật của dự án. UI hỗ trợ mở các tệp này và xuất CSV từ kết quả JUnit; nút mở thư mục báo cáo dùng trình quản lý desktop, có fallback Explorer trên Windows. Các bảng kết quả, lỗi và lịch sử co giãn theo chiều rộng thay vì dồn khoảng trắng vào cột cuối. Dự án chưa cấu hình bộ tạo HTML nên ứng dụng không tuyên bố có báo cáo HTML.
-- Nút mở ảnh chỉ tìm ảnh PNG thật do failure extension tạo trong thư mục ảnh đã cấu hình. Test đăng nhập/giỏ hàng tiếp tục bỏ qua chụp ảnh để bảo vệ dữ liệu nhạy cảm.
-- URL, headless, thời gian chờ, thư mục ảnh và thư mục log/báo cáo được lưu ngoài repository tại `%USERPROFILE%\.mobilecity-test-manager\settings.properties` (Windows) hoặc `$HOME/.mobilecity-test-manager/settings.properties` và được truyền qua các system property mà `TestConfig` đã hỗ trợ. Tài khoản không được lưu trong cấu hình; test giỏ hàng vẫn đọc credentials từ biến môi trường hiện có.
-- Lịch sử mỗi run được lưu thành tệp properties trong `%USERPROFILE%\.mobilecity-test-manager\history\` (Windows) hoặc `$HOME/.mobilecity-test-manager/history/`. Log đầu ra riêng của runner và các tệp CSV được lưu trong thư mục `logs/` và `exports/` bên cạnh.
+Chạy các lệnh tại thư mục gốc repository. Lệnh khởi chạy ứng dụng JavaFX không chạy Selenium test.
 
-Website và Chrome không được hiển thị là đã kết nối trước khi kiểm tra. Mở ứng dụng hoặc lưu cấu hình không khởi động trình duyệt; môi trường WebDriver chỉ được xác nhận khi chạy test thật. Các test sử dụng OTP/CAPTCHA, credentials, WebDriverWait, ghi log và chụp ảnh vẫn giữ nguyên hành vi hiện có.
+### 1. Khởi chạy ứng dụng quản lý kiểm thử
 
-## Yêu cầu và thiết lập
+| STT | Phương thức khởi chạy | Lệnh thực hiện | Mô tả |
+|---:|---|---|---|
+| 1 | Maven | `mvn javafx:run` | Khởi chạy ứng dụng desktop JavaFX. |
+| 2 | Windows batch | `.\run.bat` | Kiểm tra Maven trong `PATH`, sau đó chạy ứng dụng JavaFX. |
 
-- JDK 17 trở lên (`java -version`).
-- Maven 3.9+ được cài đặt và có trong `PATH` (`mvn -version`). Maven đã có sẵn trên máy ảo Ubuntu của GitHub-hosted runners; quy trình CI không cần cài Maven riêng.
-- Cài Google Chrome để chạy cục bộ.
-- Có kết nối mạng tới MobileCity và, trong lần chạy đầu, tới các địa chỉ Selenium Manager dùng để tải/tìm ChromeDriver.
+### 2. Kiểm tra môi trường
 
-Selenium Manager đi kèm Selenium và thường tự chọn/tải ChromeDriver tương thích. Thông thường không cần cài `chromedriver` riêng. Không tắt bảo mật trình duyệt hoặc vượt cơ chế chống bot của trang web để làm cho bài kiểm thử chạy qua.
+| STT | Thành phần | Lệnh kiểm tra | Yêu cầu |
+|---:|---|---|---|
+| 1 | Java JDK | `java -version` và `javac -version` | JDK 17 trở lên. |
+| 2 | Maven | `mvn -version` | Maven 3.9 trở lên. |
+| 3 | Google Chrome | `@("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe", "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe") \| Where-Object { Test-Path $_ }` | Chrome phải được cài để chạy Selenium cục bộ. |
+| 4 | Kết nối mạng | `Test-NetConnection mobilecity.vn -Port 443` | Cần truy cập website và để Selenium Manager tìm/tải ChromeDriver khi cần. |
+| 5 | Biên dịch project | `mvn -DskipTests test-compile` | Xác minh cấu hình Maven và biên dịch mà không chạy test. |
 
-Có thể cung cấp cấu hình tùy chọn bằng thuộc tính Maven hoặc biến môi trường; thuộc tính Maven được ưu tiên:
+### 3. Chạy kiểm thử tổng quát
 
-| Thuộc tính Maven | Biến môi trường | Mặc định |
-| --- | --- | --- |
-| `mobilecity.baseUrl` | `MOBILECITY_BASE_URL` | `https://mobilecity.vn/` |
-| `mobilecity.headless` | `MOBILECITY_HEADLESS` | `true` |
-| `mobilecity.waitSeconds` | `MOBILECITY_WAIT_SECONDS` | `15` |
-| `mobilecity.screenshotDir` | `MOBILECITY_SCREENSHOT_DIR` | `screenshots` |
-| `mobilecity.reportDir` | `MOBILECITY_REPORT_DIR` | `reports` |
-| `mobilecity.keepBrowserOpenSeconds` | `MOBILECITY_KEEP_BROWSER_OPEN_SECONDS` | `0` |
-| `mobilecity.cartChromeProfileDir` | `MOBILECITY_CART_CHROME_PROFILE_DIR` | Không bật |
-| `mobilecity.chromeDebuggerAddress` | `MOBILECITY_CHROME_DEBUGGER_ADDRESS` | Không bật |
+| STT | Hình thức kiểm thử | Lệnh thực hiện | Mô tả |
+|---:|---|---|---|
+| 1 | Chạy toàn bộ | `mvn clean test` | Xóa kết quả Maven cũ, biên dịch và chạy toàn bộ suite. |
+| 2 | Chạy không clean | `mvn test` | Chạy test mà không xóa `target/` trước đó. |
 
-Kiểm thử giỏ hàng đọc riêng hai biến môi trường `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD`. Workflow dùng GitHub Secrets cùng tên; nếu secrets vắng mặt hoặc PR đến từ fork không được cấp secrets, test giỏ được ghi `BLOCKED`/skipped, không giả thành `PASS`. Không truyền thông tin đăng nhập bằng tham số Maven, không lưu chúng trong `.env`, dữ liệu kiểm thử, mã nguồn, README hoặc nhật ký.
+Website công khai có thể thay đổi hoặc chặn tự động hóa; xem trạng thái và bằng chứng của đúng lần chạy trước khi kết luận.
 
-Mặc định test giỏ vẫn đăng nhập mới ở mỗi lần chạy. Để lưu phiên đăng nhập qua các lần chạy cục bộ, hãy đặt `MOBILECITY_CART_CHROME_PROFILE_DIR` tới một thư mục riêng cho Selenium (không dùng thư mục Chrome cá nhân), ví dụ `.runtime/mobilecity-cart-profile`. Lần chạy đầu cần `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD`; những lần sau test sẽ tái sử dụng phiên nếu website còn đăng nhập, và chỉ cần credentials lại khi phiên hết hạn. Thư mục `.runtime/` được Git bỏ qua và không bị xóa bởi `mvn clean`. Profile chứa cookie/thông tin xác thực của website: không chia sẻ hoặc commit thư mục này, không chạy đồng thời nhiều Chrome/test dùng chung profile, và logout/xóa profile khi không còn cần. Test thông thường không dùng profile này và vẫn xóa phiên trình duyệt như trước.
+### 4. Chạy kiểm thử theo từng module
 
-Để test giỏ thao tác ngay trong một cửa sổ Chrome bạn mở (thay vì để ChromeDriver tự tạo cửa sổ khác), phải mở Chrome với cổng remote debugging rồi cấu hình `MOBILECITY_CHROME_DEBUGGER_ADDRESS=127.0.0.1:9222` trong cùng cửa sổ PowerShell chạy Maven. Chrome hiện tại cần được đóng hết trước khi mở lại bằng lệnh dưới đây; Chrome được kết nối sẽ không bị test đóng hay xóa cookie:
+Các lệnh bên dưới chọn lớp JUnit thực tế trong `src/test/java/`.
 
-```powershell
-$chrome = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
-$profile = (Join-Path (Get-Location).Path ".runtime\mobilecity-cart-profile")
-Start-Process -FilePath $chrome -ArgumentList @("--remote-debugging-port=9222", "--user-data-dir=`"$profile`"", "https://mobilecity.vn/")
+| STT | Module | Lớp Test | Lệnh thực hiện | Mục đích |
+|---:|---|---|---|---|
+| 1 | HOME | `HomeTest` | `mvn "-Dtest=HomeTest" test` | Trang chủ, điều hướng, banner, sắp xếp và viewport. |
+| 2 | CATEGORY | `CategoryTest` | `mvn "-Dtest=CategoryTest" test` | Menu danh mục và điều hướng danh mục. |
+| 3 | SEARCH | `SearchTest` | `mvn "-Dtest=SearchTest" test` | Tìm kiếm, kết quả và mở sản phẩm. |
+| 4 | FILTER & SORT | `HomeTest` | `mvn "-Dtest=HomeTest" test` | Các ca hãng và sắp xếp giá nằm trong `HomeTest`; chưa có lớp riêng. |
+| 5 | PRODUCT | `ProductTest` | `mvn "-Dtest=ProductTest" test` | Trang chi tiết và thông tin sản phẩm. |
+| 6 | NEWS & PROMOTION | Chưa triển khai | — | Chưa có lớp Test chức năng tương ứng. |
+| 7 | CONTACT & STORE | Chưa triển khai | — | Chưa có lớp Test chức năng tương ứng. |
+| 8 | WARRANTY POLICY | Chưa triển khai | — | Chưa có lớp Test chức năng tương ứng. |
+
+### 5. Cấu hình chế độ chạy
+
+Các tham số dưới đây được đọc từ Maven system properties; mặc định headless là `true`.
+
+| STT | Chế độ | Lệnh thực hiện | Ý nghĩa |
+|---:|---|---|---|
+| 1 | Hiển thị Chrome | `mvn test "-Dmobilecity.headless=false"` | Quan sát trực tiếp trình duyệt. |
+| 2 | Headless | `mvn test "-Dmobilecity.headless=true"` | Chạy mà không hiển thị cửa sổ trình duyệt. |
+| 3 | Thay đổi URL | `mvn test "-Dmobilecity.baseUrl=https://mobilecity.vn/"` | Chỉ định website kiểm thử. |
+| 4 | Thay đổi thời gian chờ | `mvn test "-Dmobilecity.waitSeconds=30"` | Đặt thời gian chờ 30 giây; giá trị hợp lệ 1–120 giây. |
+| 5 | Giữ Chrome mở | `mvn test "-Dmobilecity.headless=false" "-Dmobilecity.keepBrowserOpenSeconds=60"` | Giữ trình duyệt mở 60 giây sau khi test kết thúc; giá trị hợp lệ 0–300 giây. |
+
+Tham số cấu hình khác và biến môi trường được liệt kê trong [CONFIGURATION.md](./docs/CONFIGURATION.md).
+
+### 6. Chạy kiểm thử giỏ hàng
+
+`CartTest` là kiểm thử bổ sung ngoài tám module trên. Test thay đổi tạm thời số lượng sản phẩm và thử khôi phục; không checkout hoặc đặt hàng.
+
+| STT | Nội dung | Hướng dẫn |
+|---:|---|---|
+| 1 | Chuẩn bị tài khoản | Chỉ dùng tài khoản thử nghiệm được phép. CAPTCHA/OTP có thể khiến test bị chặn. |
+| 2 | Cấu hình thông tin | Đặt `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD` trong biến môi trường; không ghi giá trị vào mã nguồn hoặc README. |
+| 3 | Khởi chạy | `mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test` |
+| 4 | Lưu ý | Không ghi mật khẩu vào lệnh, log hay repository. Hướng dẫn cấu hình an toàn, profile riêng và remote debugging: [CART_TESTING.md](./docs/CART_TESTING.md). |
+
+### 7. Xem báo cáo và bằng chứng
+
+| STT | Thành phần | Đường dẫn | Nội dung |
+|---:|---|---|---|
+| 1 | Báo cáo Surefire | `target/surefire-reports/` | Kết quả JUnit dạng XML và văn bản. |
+| 2 | Log kiểm thử | `reports/test-execution.log` | Nhật ký lần chạy; thư mục có thể được đổi bằng cấu hình. |
+| 3 | Screenshots | `screenshots/` | Ảnh bằng chứng khi test lỗi và driver hỗ trợ chụp. |
+| 4 | Báo cáo tổng hợp | [TestExecutionReport.md](./TestExecutionReport.md) | Kết quả đã ghi nhận cho các lần chạy được báo cáo. |
+| 5 | GitHub Actions | [Workflow MobileCity Selenium Tests](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/workflows/selenium-test.yml) | Mở run để xem trạng thái và tải artifact `mobilecity-test-results-<run_number>` (lưu 14 ngày). |
+
+Surefire reports nằm trong `target/` và có thể bị xóa bởi `mvn clean`. Hướng dẫn chi tiết về log, XML, ảnh và artifact CI nằm tại [REPORTING.md](./docs/REPORTING.md).
+
+Lần chạy full suite local gần nhất được ghi trong [TestExecutionReport.md](./TestExecutionReport.md): ngày 12-11-2026, Windows 11, Maven 3.9.15, Java 26.0.1, Chrome 157 headless; **30 PASS, 2 FAIL, 3 skipped trên 35 test**. Trong 22 case HOME/CATEGORY: **13 PASS, 2 FAIL, 2 BLOCKED, 5 NOT EXECUTED**. Kết quả này chỉ thuộc lần chạy local nêu trên; CI chưa được chạy lại để xác minh thay đổi hiện tại.
+
+### 8. Theo dõi trạng thái kiểm thử
+
+| Trạng thái | Ý nghĩa |
+|---|---|
+| `PASS` | Kiểm thử đạt kết quả mong đợi. |
+| `FAIL` | Kiểm thử không đạt kết quả mong đợi. |
+| `BLOCKED` | Không thể tiếp tục thực hiện kiểm thử. |
+| `NOT EXECUTED` | Chưa thực hiện kiểm thử. |
+
+## GitHub Actions
+
+Workflow [MobileCity Selenium Tests](./.github/workflows/selenium-test.yml) chạy khi push hoặc pull request nhắm tới `main`, hoặc khi khởi chạy thủ công (`workflow_dispatch`). Dùng `ubuntu-latest`, Temurin Java 17, Chrome stable và lệnh:
+
+```bash
+mvn --batch-mode --no-transfer-progress clean test
 ```
 
-Sau khi lệnh trên mở Chrome và bạn xác nhận đã đăng nhập MobileCity, chạy test trong cùng thư mục dự án, trong một cửa sổ PowerShell khác:
+Job timeout là 20 phút. Workflow kiểm tra UTF-8 và luôn thử tải Surefire reports, log và ảnh làm artifact. Xem tab **Actions** của GitHub repository, mở run cần kiểm tra rồi tải artifact `mobilecity-test-results-*`. Nếu workflow thất bại, artifact là bằng chứng chẩn đoán, không biến run thành PASS. Không có badge CI trong README vì trạng thái live chưa được xác minh cho phiên bản hiện tại.
 
-```powershell
-$env:MOBILECITY_CHROME_DEBUGGER_ADDRESS = "127.0.0.1:9222"
-mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test
-```
+## An toàn
 
-Test sẽ thao tác trên tab Chrome đã kết nối; sau khi chạy xong Chrome vẫn mở. Đóng mọi cửa sổ Chrome trước khi khởi chạy bằng remote debugging để chắc chắn cổng 9222 và profile được áp dụng. Chỉ bật cổng này trên máy tin cậy; không mở cổng remote debugging ra mạng.
+- Không vượt CAPTCHA, OTP hoặc cơ chế chống bot; ghi nhận test bị chặn đúng trạng thái.
+- Không đặt hàng, checkout hoặc thanh toán thật.
+- Không commit credentials, `.env`, cookie hay Chrome profile; không chia sẻ profile.
+- Không ghi dữ liệu đăng nhập vào log/ảnh; ảnh chụp các test đăng nhập/giỏ hàng được hạn chế.
+- Không suy diễn PASS từ test chưa chạy, artifact thiếu hoặc một lần chạy cũ.
 
-## Mở dự án bằng IntelliJ IDEA hoặc Eclipse
+## Tài liệu và phát triển tiếp
 
-1. Mở/nhập thư mục này (`mobilecity-selenium`) dưới dạng một dự án Maven hiện có.
-2. Chọn JDK 17+ cho dự án và Maven importer.
-3. Cho phép Maven tải các phụ thuộc từ `pom.xml`.
-4. Chạy một lớp kiểm thử trong `src/test/java` hoặc sử dụng các lệnh Maven bên dưới.
+- [Test Case HOME/CATEGORY](./TestCases_Home_Category.md) — đặc tả, khả năng tự động hóa và độ bao phủ Use Case.
+- [Báo cáo thực thi HOME/CATEGORY](./TestExecutionReport.md) — kết quả local gần nhất theo mã Test Case.
+- [Cấu hình](./docs/CONFIGURATION.md) — system properties, biến môi trường và thiết lập local.
+- [Kiểm thử giỏ hàng](./docs/CART_TESTING.md) — credentials, profile riêng và remote debugging.
+- [Ứng dụng Test Manager](./docs/TEST_MANAGER.md) — các màn hình và cách sử dụng.
+- [Báo cáo và bằng chứng](./docs/REPORTING.md) — log, Surefire, ảnh, UTF-8 và artifact CI.
 
-Trong IntelliJ IDEA, chọn **File → Open** rồi chọn thư mục này hoặc `pom.xml`. Trong Eclipse, chọn **File → Import → Existing Maven Projects**, chọn thư mục dự án rồi hoàn tất.
-
-## Chạy kiểm thử trên máy
-
-Ứng dụng JavaFX được biên dịch và khởi chạy qua plugin Maven đã khai báo:
-
-```powershell
-mvn javafx:run
-```
-
-Chạy test từ giao diện bằng cách mở **Chạy kiểm thử**, chọn **Toàn bộ test case** hoặc **Chọn test case**, đánh dấu các dòng cần chạy nếu chọn chế độ sau, rồi nhấn **Bắt đầu kiểm thử**. URL, thời gian chờ và headless nhập tại màn hình này áp dụng cho lần chạy; lưu mặc định tại **Cấu hình hệ thống**. Chấp nhận hộp thoại cảnh báo trước khi chạy test giỏ hàng. Kết quả, log và trạng thái được cập nhật từ tiến trình Maven/JUnit. Hủy lần chạy bằng **Dừng an toàn**; trạng thái chỉ đổi thành đã dừng sau khi tiến trình kết thúc được xác nhận.
-
-Chạy toàn bộ bộ kiểm thử tự động đã được triển khai từ thư mục dự án:
-
-```powershell
-mvn clean test
-```
-
-Chạy một lớp kiểm thử:
-
-```powershell
-mvn -Dtest=HomeTest test
-```
-
-Để chạy test giỏ hàng trong PowerShell, nhập tài khoản khi được nhắc. Mật khẩu được nhập ẩn, biến môi trường sẽ bị xóa sau khi Maven kết thúc:
-
-```powershell
-$env:MOBILECITY_CART_CHROME_PROFILE_DIR = ".runtime/mobilecity-cart-profile"
-$env:MOBILECITY_USERNAME = Read-Host "Tên đăng nhập / email / số điện thoại"
-$securePassword = Read-Host "Mật khẩu" -AsSecureString
-$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-try {
-    $env:MOBILECITY_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
-    mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test
-}
-finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
-    Remove-Item Env:MOBILECITY_USERNAME -ErrorAction SilentlyContinue
-    Remove-Item Env:MOBILECITY_PASSWORD -ErrorAction SilentlyContinue
-    $securePassword.Dispose()
-}
-```
-
-Sau lần đăng nhập thành công đầu tiên, có thể bỏ bước nhập credentials ở các lần chạy sau nếu phiên trong profile còn hiệu lực:
-
-```powershell
-$env:MOBILECITY_CART_CHROME_PROFILE_DIR = ".runtime/mobilecity-cart-profile"
-mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test
-```
-
-Test giỏ tìm liên kết hiển thị sau đăng nhập, không tự đoán URL. Nếu trang yêu cầu CAPTCHA/OTP hoặc thiếu nút cập nhật đã nhận diện, test dừng với `BLOCKED` và không thay đổi giỏ. Khi tự động tăng số lượng, test chờ xác nhận giao diện, tải lại giỏ để kiểm tra số lượng đã lưu, sau đó thử khôi phục và tải lại để xác nhận giá trị gốc. Ảnh chụp bị tắt cho các test đăng nhập/giỏ để tránh lưu thông tin tài khoản hoặc dữ liệu giỏ riêng tư; mọi test khác vẫn chụp khi thất bại nếu WebDriver hỗ trợ.
-
-Một số lệnh khác:
-
-```powershell
-mvn -Dtest=SearchTest test
-mvn test -Dmobilecity.headless=false
-mvn test -Dmobilecity.baseUrl=https://mobilecity.vn/
-```
-
-Muốn dùng **một cửa sổ Chrome** xuyên suốt bộ test và giữ trang cuối mở thêm 60 giây sau khi chạy xong:
-
-```powershell
-mvn "-Dmobilecity.headless=false" "-Dmobilecity.keepBrowserOpenSeconds=60" --batch-mode --no-transfer-progress clean test
-```
-
-Trong lúc chạy, URL vẫn đổi vì mỗi test mở trang cần kiểm tra, nhưng các test sẽ dùng lại cùng cửa sổ Chrome. Khi suite kết thúc, trình duyệt giữ trang cuối trong số giây đã đặt rồi tự đóng. Có thể đổi `60` thành `0`–`300`; mặc định `0` giữ hành vi đóng Chrome như trước. Surefire được cấu hình chờ đủ lâu cho thời gian giữ tối đa.
-
-`mvn clean test` xóa kết quả Maven cũ trong `target/`, sau đó biên dịch và chạy bộ kiểm thử. Lệnh này không thể khiến một trang không truy cập được hoặc một bài kiểm thử bị chặn trở thành thành công. Hãy kiểm tra báo cáo Surefire và nhật ký sau mỗi lần chạy.
-
-## Xem kết quả và ảnh chụp
-
-- **Báo cáo Surefire:** `target/surefire-reports/` (`TEST-*.xml` và `*.txt`).
-- **Nhật ký chạy cục bộ:** `reports/test-execution.log`.
-- **Ảnh chụp khi thất bại:** `screenshots/`.
-- **Bằng chứng GitHub Actions:** mở lần chạy workflow và tải artifact `mobilecity-test-results-*`. Artifact bao gồm báo cáo Surefire, nhật ký chạy và mọi ảnh chụp đã được tạo.
-
-Một bài kiểm thử giỏ hàng bị JUnit hủy sẽ được ghi là bỏ qua trong Surefire và phân loại là `BLOCKED` trong sổ theo dõi dự án. Việc thiếu tệp artifact hoặc ảnh chụp không chứng minh bài kiểm thử thành công. Khi cập nhật hồ sơ dự án, hãy lưu cùng nhau Test Run ID, môi trường, phạm vi chính xác, kết quả và bằng chứng.
-
-Các tệp văn bản trong run dùng UTF-8: `.editorconfig` đặt UTF-8 cho tệp văn bản, Maven được cấu hình qua `.mvn/jvm.config`, JVM và báo cáo Surefire được cấu hình riêng trong `pom.xml`, và `EvidenceWriter` ghi log bằng `StandardCharsets.UTF_8`. Kiểm thử hồi quy `EvidenceWriterTest` đọc lại nội dung tiếng Việt. Trên GitHub Actions, validator hiện quét nội dung văn bản và XML trong các báo cáo, tài liệu thuộc kho mã; các hồ sơ bàn giao bên ngoài thư mục kho không nằm trong phạm vi quét của CI. Nếu phát hiện lỗi mã hóa, workflow sẽ thất bại nhưng vẫn tải lên artifact kiểm thử để hỗ trợ điều tra. Khi chạy cục bộ, thực hiện validator sau Maven để kiểm tra kết quả:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate_run_documents.ps1 -Directory .
-```
-
-Khi xem log trên Windows, mở bằng công cụ hỗ trợ UTF-8 hoặc đặt terminal ở UTF-8; không chuyển mã file sang ANSI.
-
-Các hồ sơ TestPlan/Run được tạo ngoài Maven không tự động nhận cấu hình mã hóa JVM. Khi tạo chúng bằng PowerShell, dùng `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` hoặc `[System.IO.File]::WriteAllLines(..., [System.Text.UTF8Encoding]::new($false))`; không chuyển chuỗi UTF-8 qua code page ANSI. Đặt hồ sơ trong kho để validator tự động quét ở CI, hoặc chạy validator trên đúng thư mục hồ sơ trước khi phát hành, ví dụ `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate_run_documents.ps1 -Directory "<thư_mục_run>"`. Validator đọc UTF-8 ở chế độ nghiêm ngặt, quét nội dung text và phần XML trong DOCX/XLSX, đồng thời trả mã lỗi khác 0 nếu phát hiện byte không hợp lệ, mojibake hoặc dấu `?` thay thế nằm giữa ký tự chữ; không phát hành run nếu bước này thất bại.
-
-## Kho GitHub và đẩy thay đổi
-
-Kho mã nguồn là [dotuananh0206-sudo/mobilecity-selenium](https://github.com/dotuananh0206-sudo/mobilecity-selenium). Thư mục dự án này là thư mục gốc của kho. Không khởi tạo hoặc đẩy thư mục bài tập cha lên kho: các workbook nội bộ, báo cáo, ảnh chụp cũ và thông tin cá nhân không thuộc kho mã nguồn công khai.
-
-Xem lại và đẩy thay đổi từ thư mục này:
-
-```powershell
-git status --short --branch
-git add .github src pom.xml README.md .gitignore .env.example
-git status --short
-git commit -m "Describe the reviewed change"
-git push
-```
-
-Trước khi commit, kiểm tra danh sách tệp đã stage để chắc chắn chỉ chứa mã nguồn/cấu hình/tài liệu dự kiến. Nếu kho từ xa có commit mới, hãy fetch và hòa giải lịch sử trước khi đẩy. Không tùy tiện force-push hoặc ghi đè lịch sử từ xa. Không commit `.env`, thông tin xác thực, kết quả `target/` được tạo tự động, ảnh chụp hoặc báo cáo cục bộ.
-
-## GitHub Actions và artifact
-
-Tệp workflow: `.github/workflows/selenium-test.yml`.
-
-- Chạy khi có push lên `main` và pull request nhắm tới `main`.
-- Hỗ trợ chạy thủ công bằng `workflow_dispatch`.
-- Sử dụng máy ảo `ubuntu-latest` do GitHub cung cấp, Temurin Java 17 và Chrome stable.
-- Chạy `mvn --batch-mode --no-transfer-progress clean test`.
-- Giới hạn thời gian mỗi job là 20 phút.
-- Tải báo cáo Surefire, nhật ký và ảnh chụp lên artifact `mobilecity-test-results-*`, kể cả khi Maven test hoặc kiểm tra UTF-8 thất bại.
-- Kết quả Maven khác 0 sẽ làm workflow thất bại; tải artifact không biến một lần chạy thất bại thành thành công.
-
-GitHub Actions chạy trên máy ảo của GitHub; nó **không** chạy bên trong trang kho mã hoặc IDE cục bộ của bạn. Để xem một lần chạy, mở tab **Actions** của kho, chọn **MobileCity Selenium Tests**, rồi mở lần chạy tương ứng với commit cần xem. Để tải bằng chứng, mở **Summary** của lần chạy đã hoàn tất và tải artifact. Artifact được lưu trong 14 ngày; hãy tải xuống trước khi hết hạn nếu cần dùng cho báo cáo.
-
-Lịch sử CI đã được xác minh trước khi thay đổi phạm vi:
-
-- [Lần chạy #1](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047040851): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-1`.
-- [Lần chạy #2](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38047533363): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức đã triển khai; artifact `mobilecity-test-results-2`.
-- [Lần chạy #3](https://github.com/dotuananh0206-sudo/mobilecity-selenium/actions/runs/38049266948): **FAIL**, 4 lỗi kiểm thử, 2 lỗi thực thi, 1 bài bị chặn/bỏ qua trong 7 phương thức; artifact `mobilecity-test-results-3`.
-
-Các lần chạy CI lịch sử gặp Cloudflare security verification; lỗi thô không được xác nhận là defect MobileCity. Lần chạy CI lịch sử gần nhất là workflow run #7 (`38160508776`), thất bại ở Maven/Selenium trên commit cũ `2ef5206`; log có timeout khi mở danh mục trước khi challenge được phân loại an toàn. Đây không phải kết quả của mã nguồn hiện tại và không chứng minh lỗi website. Lần chạy local đầy đủ mới nhất là `MC-20261013-083737`: 14 phương thức JUnit, **13 PASS / 0 FAIL / 0 ERROR / 1 BLOCKED** (11 kiểm thử UI PASS, 2 kiểm thử EvidenceWriter PASS; `TC-CART-001` BLOCKED do thiếu credentials). Trong 17 case thiết kế, 11 PASS, 1 BLOCKED và 5 NOT EXECUTED. Môi trường local dùng Windows 11, Java 26.0.1, Maven 3.9.15, Chrome 154 headless; mã nguồn vẫn biên dịch theo release 17. Bằng chứng được lưu tại `Team/6. Evidence/execution-logs/MC-20261013-083737/`. Run này không xác nhận hành vi giỏ hàng, không chứng minh website hết lỗi và không thay thế GitHub Actions. CI chưa chạy lại cho thay đổi cục bộ này; không có thay đổi nào được push.
-
-## Sự cố thường gặp
-
-| Hiện tượng | Cần kiểm tra |
-| --- | --- |
-| Không nhận diện được `mvn` hoặc `java` | Cài JDK 17+ và Maven 3.9+, thêm chúng vào `PATH`, mở lại terminal rồi kiểm tra `java -version` / `mvn -version`. |
-| Selenium Manager không tìm thấy/tải được ChromeDriver | Xác nhận Chrome đã cài và mạng/proxy cho phép Selenium Manager tải xuống. Đọc lỗi Selenium/Maven; không thay bằng tệp driver chưa được xác minh. |
-| Chrome không khởi động trong môi trường headless cục bộ | Xác nhận Chrome đã cài và cập nhật; thử `mvn test -Dmobilecity.headless=false` để quan sát trình duyệt. Không thêm cờ trình duyệt thiếu an toàn khi chưa hiểu tác động. |
-| Chờ phần tử hết thời gian hoặc không thấy thành phần | Kiểm tra ảnh chụp, XML Surefire và trang/DOM thực tế. Trang có thể đã thay đổi hoặc trả về chuyển hướng/trang thử thách. Chỉ cập nhật bộ chọn dựa trên bằng chứng DOM quan sát được. |
-| CAPTCHA, thử thách chống bot, hạn chế truy cập | Dừng tương tác và ghi trường hợp đó là `BLOCKED` hoặc `NOT EXECUTED`; tuyệt đối không tìm cách vượt cơ chế kiểm soát. |
-| Kiểm thử cục bộ thành công nhưng GitHub Actions thất bại | So sánh thông tin trình duyệt/runtime, commit chính xác, ảnh chụp CI và báo cáo Surefire. Thành công cục bộ không chứng minh CI hoặc trang web chạy thành công trong môi trường khác. |
-| Một bài kiểm thử bị bỏ qua | Kiểm tra XML/văn bản Surefire và nhật ký chạy. Bài kiểm thử giỏ hàng chủ động hủy nếu không tìm thấy liên kết giỏ hàng công khai; trạng thái là `BLOCKED`, không phải kiểm thử giỏ hàng thành công. |
-| Không thấy ảnh chụp | Ảnh chụp chỉ được tạo khi phương thức kiểm thử thất bại và phiên trình duyệt vẫn còn. Hãy dùng báo cáo Surefire và nhật ký chạy làm bằng chứng bổ sung. |
-
-## Lưu ý về kết quả đã xác minh
-
-Kết quả chạy phụ thuộc vào thời điểm và môi trường. Hãy xem hồ sơ chạy đã được lưu trong dự án cùng báo cáo kiểm thử hiện tại để biết lần chạy mới nhất đã hoàn tất; không dùng lại kết quả `PASS` cũ làm kết quả của lần chạy mới. Không có kết quả kiểm thử nào trong tài liệu này chứng nhận MobileCity không có lỗi.
+`NEWS & PROMOTION`, `CONTACT & STORE` và `WARRANTY POLICY` chưa có bộ Test Case riêng trong repository hiện tại. Bổ sung đặc tả và dữ liệu kiểm thử trước, sau đó triển khai theo Java/Selenium/JUnit 5/POM; cập nhật trạng thái và kết quả dựa trên bằng chứng mới.
