@@ -16,7 +16,6 @@ Test đọc Java system property trước, rồi mới đọc biến môi trư�
 | `mobilecity.screenshotDir` | `MOBILECITY_SCREENSHOT_DIR` | `screenshots` | Thư mục ảnh khi test lỗi. |
 | `mobilecity.reportDir` | `MOBILECITY_REPORT_DIR` | `reports` | Thư mục log chạy. |
 | `mobilecity.keepBrowserOpenSeconds` | `MOBILECITY_KEEP_BROWSER_OPEN_SECONDS` | `0` | Giữ Chrome sau suite trong 0–300 giây. |
-| `mobilecity.cartChromeProfileDir` | `MOBILECITY_CART_CHROME_PROFILE_DIR` | Không bật | Chrome profile dành riêng cho kiểm thử giỏ. |
 | `mobilecity.chromeDebuggerAddress` | `MOBILECITY_CHROME_DEBUGGER_ADDRESS` | Không bật | Địa chỉ Chrome remote debugging. |
 
 Ví dụ PowerShell:

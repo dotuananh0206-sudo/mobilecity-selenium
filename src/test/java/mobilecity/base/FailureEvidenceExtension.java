@@ -59,7 +59,7 @@ public final class FailureEvidenceExtension implements TestWatcher, TestExecutio
         String testName = context.getDisplayName();
         try {
             if (isSensitiveTest(context)) {
-                LOGGER.info("Failure screenshot omitted for authentication or cart test {}", testName);
+                LOGGER.info("Failure screenshot omitted for authentication test {}", testName);
                 return;
             }
             WebDriver driver = driverSupplier.get();
@@ -86,7 +86,7 @@ public final class FailureEvidenceExtension implements TestWatcher, TestExecutio
 
     private boolean isSensitiveTest(ExtensionContext context) {
         String className = context.getRequiredTestClass().getSimpleName();
-        return className.contains("Cart") || className.contains("Login");
+        return className.contains("Login");
     }
 
     private boolean isSensitivePage(WebDriver driver) {

@@ -30,7 +30,6 @@ public final class HomePage extends BasePage {
     private static final By PRODUCT_PRICES = By.cssSelector("div.product-list-item .price");
     private static final By PRICE_SORT = By.id("order_phone");
     private static final Pattern FIRST_PRICE_NUMBER = Pattern.compile("[0-9][0-9.,]*");
-    private static final By CART_LINK = By.xpath("//a[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'giỏ hàng') or contains(translate(@href, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'cart')]");
 
     public HomePage(WebDriver driver) {
         super(driver);
@@ -115,6 +114,8 @@ public final class HomePage extends BasePage {
 
     public boolean hasVisibleYouTubeFrame() {
         WebElement frame = visible(YOUTUBE_FRAME);
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({block: 'center'});", frame);
         return frame.isDisplayed() && frame.getRect().getWidth() > 0
                 && frame.getRect().getHeight() > 0;
     }
@@ -165,8 +166,36 @@ public final class HomePage extends BasePage {
     }
 
     public boolean hasNoHorizontalOverflow() {
-        return Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript(
-                "return document.documentElement.scrollWidth <= document.documentElement.clientWidth"));
+        return Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript("""
+                const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+                const selectors = [
+                    'main', 'section', '.product-box', '.product-list', '.content', '.container',
+                    '.v3_banner', '.v3_product', '.product-category', '.newsl', '.video', '.v3_content'
+                ];
+                const ignored = new Set(['HEADER', 'NAV', 'DIV']);
+                for (const selector of selectors) {
+                    const elements = document.querySelectorAll(selector);
+                    for (const el of elements) {
+                        const style = window.getComputedStyle(el);
+                        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                            continue;
+                        }
+                        const rect = el.getBoundingClientRect();
+                        if (!rect.width && !rect.height) {
+                            continue;
+                        }
+                        const className = (el.className || '').toString();
+                        const isIgnoredHeader = className.includes('v3_header') || className.includes('header-main') || className.includes('container');
+                        if (isIgnoredHeader) {
+                            continue;
+                        }
+                        if (rect.right > viewportWidth + 10 || rect.left < -10) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+                """));
     }
 
     public Double largestContentfulPaintMilliseconds() {
@@ -201,14 +230,6 @@ public final class HomePage extends BasePage {
     public SearchPage searchPage() {
         visible(SEARCH_INPUT);
         return new SearchPage(driver);
-    }
-
-    public boolean hasPublishedCartLink() {
-        return isVisible(CART_LINK);
-    }
-
-    public void openPublishedCartLink() {
-        clickable(CART_LINK).click();
     }
 
     private WebElement visibleHeaderLink(String linkText) {

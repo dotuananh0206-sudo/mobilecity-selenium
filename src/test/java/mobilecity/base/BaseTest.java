@@ -13,45 +13,38 @@ import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
-
 public abstract class BaseTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseTest.class);
     private static final String SHUTDOWN_HOOK_NAME = "mobilecity-visible-chrome-shutdown";
 
     protected static volatile WebDriver driver;
     private static boolean shutdownHookRegistered;
-    private static String activeProfileDirectory;
+    private static String activeBrowserConfiguration;
 
     @RegisterExtension
     private final FailureEvidenceExtension evidenceExtension =
             new FailureEvidenceExtension(() -> driver);
 
-    protected String persistentChromeProfileDirectory() {
-        return null;
-    }
-
     @BeforeEach
     void startBrowser() {
         String requestedBrowserConfiguration = browserConfigurationKey();
         if (driver != null && !java.util.Objects.equals(
-                activeProfileDirectory, requestedBrowserConfiguration)) {
+                activeBrowserConfiguration, requestedBrowserConfiguration)) {
             throw new IllegalStateException(
                     "Chrome configuration changed while a WebDriver session is active");
         }
         if (driver == null) {
             LOGGER.info("Starting run {} with Chrome; headless={}",
                     TestRunContext.runId(), TestConfig.headless());
-            driver = DriverFactory.createChromeDriver(
-                    normalizeProfileDirectory(persistentChromeProfileDirectory()));
-            activeProfileDirectory = requestedBrowserConfiguration;
+            driver = DriverFactory.createChromeDriver(null);
+            activeBrowserConfiguration = requestedBrowserConfiguration;
             driver.manage().timeouts().implicitlyWait(java.time.Duration.ZERO);
             driver.manage().timeouts().pageLoadTimeout(TestConfig.waitTimeout().multipliedBy(2));
             if (!isAttachedToExistingChrome()) {
                 registerVisibleBrowserShutdownHook();
             }
         }
-        if (!preservesBrowserSession()) {
+        if (!isAttachedToExistingChrome()) {
             clearBrowserSession();
         }
     }
@@ -59,7 +52,7 @@ public abstract class BaseTest {
     @AfterEach
     void stopBrowser() {
         try {
-            if (!preservesBrowserSession()) {
+            if (!isAttachedToExistingChrome()) {
                 clearBrowserSession();
             }
         } catch (org.openqa.selenium.WebDriverException e) {
@@ -70,16 +63,10 @@ public abstract class BaseTest {
                 LOGGER.info("Leaving the attached Chrome browser open");
             } else if (TestConfig.keepBrowserOpenSeconds() == 0) {
                 closeBrowser();
-            } else if (preservesBrowserSession()) {
-                LOGGER.info("Keeping the Chrome window open with the authenticated profile preserved");
             } else {
                 LOGGER.info("Keeping the Chrome window open with cookies and site storage cleared");
             }
         }
-    }
-
-    private boolean preservesBrowserSession() {
-        return persistentChromeProfileDirectory() != null || isAttachedToExistingChrome();
     }
 
     private static boolean isAttachedToExistingChrome() {
@@ -91,14 +78,7 @@ public abstract class BaseTest {
         if (debuggerAddress != null) {
             return "debugger:" + debuggerAddress;
         }
-        String profileDirectory = normalizeProfileDirectory(persistentChromeProfileDirectory());
-        return profileDirectory == null ? "default" : "profile:" + profileDirectory;
-    }
-
-    private static String normalizeProfileDirectory(String profileDirectory) {
-        return profileDirectory == null || profileDirectory.isBlank()
-                ? null
-                : Path.of(profileDirectory).toAbsolutePath().normalize().toString();
+        return "default";
     }
 
     private static void clearBrowserSession() {
@@ -161,7 +141,7 @@ public abstract class BaseTest {
                 throw e;
             } finally {
                 driver = null;
-                activeProfileDirectory = null;
+                activeBrowserConfiguration = null;
             }
         }
     }

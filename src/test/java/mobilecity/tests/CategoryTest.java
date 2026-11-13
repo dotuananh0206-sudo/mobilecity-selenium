@@ -135,8 +135,14 @@ class CategoryTest extends BaseTest {
             assertTrue(categoryPage.headerCategoryIsInsideViewport("Điện thoại"),
                     "Danh mục Điện thoại cần nằm trong viewport điện thoại");
             categoryPage.clickMainCategoryMenu("Điện thoại");
-            assertTrue(categoryPage.isMenuLinkVisible("iPhone Chính hãng VN/A"),
-                    "Menu danh mục cần mở được bằng thao tác chạm/nhấp ở viewport điện thoại");
+            assertTrue(categoryPage.openMenuContains("iPhone Chính hãng VN/A"),
+                    "Menu Điện thoại cần mở và hiển thị liên kết con ở viewport điện thoại");
+            String destination = categoryPage.menuLinkDestination("iPhone Chính hãng VN/A");
+            categoryPage.openVisibleMenuLink("iPhone Chính hãng VN/A");
+            assumeNoSiteChallenge();
+
+            assertEquals(normalizedUrl(destination), normalizedUrl(driver.getCurrentUrl()),
+                    "Chọn liên kết con cần mở đúng danh mục ở viewport điện thoại");
         } finally {
             driver.manage().window().setSize(originalSize);
         }

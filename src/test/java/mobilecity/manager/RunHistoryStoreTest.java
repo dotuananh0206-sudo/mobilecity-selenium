@@ -18,7 +18,7 @@ class RunHistoryStoreTest {
         Instant startedAt = Instant.parse("2026-10-18T14:00:00Z");
         RunRecord run = new RunRecord("GUI-20261018-210000-000", startedAt, 12500,
                 "Hoàn tất Maven", 2, 1, 0, 1, 0, 0,
-                "HomeTest#homepageLoadsWithTitle,CartTest#loginAndTemporarilyChangeFirstCartItemQuantity",
+                "HomeTest#testTC01_LoadHomePage,SearchTest#searchFindsAccentedProductUsingEnter",
                 directory.resolve("report"), directory.resolve("test-execution.log"));
 
         store.save(run);

@@ -8,7 +8,7 @@
     <artifactId>mobilecity-selenium-tests</artifactId>
     <version>1.0.0</version>
     <name>MobileCity Selenium UI Tests</name>
-    <description>MobileCity UI smoke tests with reversible cart quantity validation</description>
+    <description>MobileCity UI smoke tests with Selenium and JUnit</description>
 
     <properties>
         <maven.compiler.release>17</maven.compiler.release>

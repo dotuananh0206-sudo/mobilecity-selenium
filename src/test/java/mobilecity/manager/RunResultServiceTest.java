@@ -23,10 +23,10 @@ class RunResultServiceTest {
                   <testcase classname="mobilecity.tests.HomeTest" name="testTC03_NavigateMainCategories" time="1.0">
                     <failure message="Assertion failed">Stack detail</failure>
                   </testcase>
-                  <testcase classname="mobilecity.tests.SearchTest" name="searchReturnsMatchingProducts" time="0">
+                  <testcase classname="mobilecity.tests.SearchTest" name="searchShowsNoResultsForUnknownTerm" time="0">
                     <skipped message="BLOCKED: cần đăng nhập"/>
                   </testcase>
-                  <testcase classname="mobilecity.tests.SearchTest" name="searchShowsEmptyStateForNoMatch" time="0">
+                  <testcase classname="mobilecity.tests.SearchTest" name="emptySearchKeepsCurrentPage" time="0">
                     <skipped message="Disabled by test configuration"/>
                   </testcase>
                 </testsuite>
@@ -36,9 +36,9 @@ class RunResultServiceTest {
         List<TestCaseDefinition> selected = List.of(
                 TestCaseCatalog.findById("TC_01").orElseThrow(),
                 TestCaseCatalog.findById("TC_03").orElseThrow(),
-                TestCaseCatalog.findById("TC-SEARCH-002").orElseThrow(),
-                TestCaseCatalog.findById("TC-SEARCH-003").orElseThrow(),
-                TestCaseCatalog.findById("TC-PRODUCT-003").orElseThrow());
+                TestCaseCatalog.findById("TC_SR_04").orElseThrow(),
+                TestCaseCatalog.findById("TC_SR_05").orElseThrow(),
+                TestCaseCatalog.findById("TC_PR_03").orElseThrow());
 
         RunSummary summary = new RunResultService().summarize(reports, selected);
 

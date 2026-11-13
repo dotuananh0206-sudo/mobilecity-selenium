@@ -28,6 +28,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -54,6 +55,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -73,6 +75,11 @@ public final class MainFrame {
     private static final String RED = "#DC3545";
     private static final String ORANGE = "#EA8523";
     private static final String GRAY = "#929BAA";
+    private static final List<String> DEFECT_SEVERITIES = List.of(
+            "Chưa đánh giá", "Chặn phát hành", "Nghiêm trọng", "Cao", "Trung bình", "Thấp");
+    private static final List<String> DEFECT_CLASSIFICATIONS = List.of(
+            "Chưa phân loại", "Chức năng", "Giao diện/UX", "Hiệu năng", "Tương thích",
+            "Dữ liệu", "Tự động hóa/kiểm thử", "Môi trường", "Khác");
     private static final DateTimeFormatter DATE_TIME =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
     private static final Pattern RUNNING_CLASS_LINE =
@@ -93,6 +100,7 @@ public final class MainFrame {
     private final RunResultService resultService = new RunResultService();
     private final RunHistoryStore historyStore = new RunHistoryStore();
     private final TestRunController runController;
+    private final DefectAssessmentStore defectAssessmentStore = new DefectAssessmentStore();
     private final Set<String> selectedCaseIds = new HashSet<>();
     private final Map<TableView<CaseRow>, FilteredList<CaseRow>> caseRows = new IdentityHashMap<>();
     private final BorderPane root = new BorderPane();
@@ -115,6 +123,7 @@ public final class MainFrame {
     private RunRecord selectedHistory;
     private RunSummary currentSummary = new RunSummary(
             TestCaseCatalog.all().size(), 0, 0, 0, TestCaseCatalog.all().size(), List.of());
+    private Map<String, DefectAssessmentStore.Assessment> defectAssessments = Map.of();
     private Path currentReportDirectory;
     private String currentPage = "dashboard";
     private boolean pendingClose;
@@ -134,6 +143,7 @@ public final class MainFrame {
     private TextField executionWaitSeconds;
     private CheckBox executionHeadless;
     private Label selectedCountLabel;
+    private Button toggleCaseSelectionButton;
     private Label executionStateBadge;
     private Label executionStateDescription;
     private Label executionPercent;
@@ -632,21 +642,60 @@ public final class MainFrame {
     }
 
     private VBox buildExecutionCaseList() {
+        caseSelectionTable = createCaseTable(true);
+        caseSelectionTable.setPrefHeight(330);
         selectedCountLabel = new Label(selectedCaseIds.size() + "/"
                 + TestCaseCatalog.all().size() + " test case đã chọn");
         selectedCountLabel.getStyleClass().add("muted");
-        Button toggleSelection = secondaryButton(selectionButtonText());
-        toggleSelection.setOnAction(event -> changeSelection(selectedCaseIds.size()
+        toggleCaseSelectionButton = secondaryButton(selectionButtonText());
+        toggleCaseSelectionButton.setOnAction(event -> changeSelection(selectedCaseIds.size()
                 != TestCaseCatalog.all().size()));
         HBox title = new HBox(9,
-                selectedCountLabel, spacer(), toggleSelection);
+                selectedCountLabel, spacer(), toggleCaseSelectionButton);
         title.setAlignment(Pos.CENTER_LEFT);
+        TextField search = new TextField();
+        search.setPromptText("Tìm theo mã hoặc tên test case");
+        ComboBox<String> feature = new ComboBox<>(
+                FXCollections.observableArrayList(featureNames()));
+        feature.getSelectionModel().selectFirst();
+        feature.setMaxWidth(Double.MAX_VALUE);
+        FilteredList<CaseRow> filtered = caseRows.get(caseSelectionTable);
+        if (filtered == null) {
+            throw new IllegalStateException("Không tìm thấy danh sách test case đang lọc.");
+        }
+        Runnable updateFilter = () -> {
+            String query = search.getText().trim().toLowerCase(Locale.ROOT);
+            String selectedFeature = feature.getValue();
+            filtered.setPredicate(row -> {
+                TestCaseDefinition testCase = row.definition();
+                boolean matchesSearch = query.isEmpty()
+                        || testCase.id().toLowerCase(Locale.ROOT).contains(query)
+                        || testCase.name().toLowerCase(Locale.ROOT).contains(query);
+                boolean matchesFeature = selectedFeature == null
+                        || selectedFeature.equals("Tất cả chức năng")
+                        || testCase.feature().equals(selectedFeature);
+                return matchesSearch && matchesFeature;
+            });
+        };
+        search.textProperty().addListener((observable, oldValue, newValue) -> updateFilter.run());
+        feature.valueProperty().addListener((observable, oldValue, newValue) -> updateFilter.run());
+        HBox filters = new HBox(8, search, feature);
+        filters.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(search, Priority.ALWAYS);
+        HBox.setHgrow(feature, Priority.NEVER);
+        Button selectOnlyFiltered = secondaryButton("Chỉ chọn kết quả");
+        selectOnlyFiltered.setOnAction(event -> changeFilteredSelection(true, true));
+        Button addFiltered = secondaryButton("Thêm kết quả");
+        addFiltered.setOnAction(event -> changeFilteredSelection(true, false));
+        Button clearFiltered = secondaryButton("Bỏ kết quả");
+        clearFiltered.setOnAction(event -> changeFilteredSelection(false, false));
+        HBox bulkSelection = new HBox(8, selectOnlyFiltered, addFiltered, clearFiltered);
+        bulkSelection.setAlignment(Pos.CENTER_LEFT);
         VBox listHeading = new VBox(10,
-                sectionHeader("Danh sách test case", "Chọn các kịch bản cần thực thi"),
-                title);
+                sectionHeader("Danh sách test case",
+                        "Tìm/lọc, chọn test; đặt Chế độ chạy thành “Chọn test case” để chạy lựa chọn."),
+                title, filters, bulkSelection);
 
-        caseSelectionTable = createCaseTable(true);
-        caseSelectionTable.setPrefHeight(330);
         VBox card = card(listHeading, caseSelectionTable);
         card.getStyleClass().add("execution-list-card");
         VBox.setVgrow(caseSelectionTable, Priority.ALWAYS);
@@ -772,16 +821,8 @@ public final class MainFrame {
             selectedCountLabel.setText(selectedCaseIds.size() + "/"
                     + TestCaseCatalog.all().size() + " test case đã chọn");
         }
-        if (caseSelectionTable != null) {
-            Node card = caseSelectionTable.getParent();
-            if (card instanceof VBox box && !box.getChildren().isEmpty()
-                    && box.getChildren().get(0) instanceof HBox heading) {
-                for (Node node : heading.getChildren()) {
-                    if (node instanceof Button button) {
-                        button.setText(selectionButtonText());
-                    }
-                }
-            }
+        if (toggleCaseSelectionButton != null) {
+            toggleCaseSelectionButton.setText(selectionButtonText());
         }
     }
 
@@ -933,8 +974,8 @@ public final class MainFrame {
         TextField search = new TextField();
         search.setPromptText("Tìm theo mã hoặc tên test case");
         search.setPrefWidth(255);
-        ComboBox<String> feature = new ComboBox<>(FXCollections.observableArrayList(
-                "Tất cả chức năng", "Trang chủ", "Tìm kiếm", "Sản phẩm", "Giỏ hàng", "Kiểm thử nội bộ"));
+        ComboBox<String> feature = new ComboBox<>(
+                FXCollections.observableArrayList(featureNames()));
         feature.getSelectionModel().selectFirst();
         ComboBox<String> status = new ComboBox<>(FXCollections.observableArrayList(
                 "Tất cả trạng thái", "PASS", "FAIL", "BLOCKED", "NOT EXECUTED"));
@@ -978,6 +1019,12 @@ public final class MainFrame {
         return filters;
     }
 
+    private static List<String> featureNames() {
+        return List.of("Tất cả chức năng", "Trang chủ", "Danh mục", "Tìm kiếm",
+                "Lọc & Sắp xếp", "Sản phẩm", "Tin tức & Khuyến mãi",
+                "Liên hệ & Cửa hàng", "Chính sách bảo hành", "Kiểm thử nội bộ");
+    }
+
     private void changeSelection(boolean selected) {
         if (caseSelectionTable == null) {
             return;
@@ -987,6 +1034,29 @@ public final class MainFrame {
             throw new IllegalStateException("Không tìm thấy danh sách test case đang hiển thị.");
         }
         for (CaseRow row : filtered.getSource()) {
+            row.setSelected(selected);
+        }
+    }
+
+    private void changeFilteredSelection(boolean selected, boolean replaceSelection) {
+        if (caseSelectionTable == null) {
+            return;
+        }
+        FilteredList<CaseRow> filtered = caseRows.get(caseSelectionTable);
+        if (filtered == null) {
+            throw new IllegalStateException("Không tìm thấy danh sách test case đang lọc.");
+        }
+        if (filtered.isEmpty()) {
+            showAlert(Alert.AlertType.INFORMATION, "Không có test case phù hợp",
+                    "Hãy đổi từ khóa tìm kiếm hoặc chức năng đã chọn.");
+            return;
+        }
+        if (replaceSelection) {
+            for (CaseRow row : filtered.getSource()) {
+                row.setSelected(false);
+            }
+        }
+        for (CaseRow row : filtered) {
             row.setSelected(selected);
         }
     }
@@ -1013,18 +1083,6 @@ public final class MainFrame {
         } catch (IllegalArgumentException e) {
             showAlert(Alert.AlertType.ERROR, "Cấu hình chạy không hợp lệ", e.getMessage());
             return;
-        }
-        if (selected.stream().anyMatch(testCase -> testCase.id().equals("TC-CART-001"))) {
-            Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
-                    "Lựa chọn có TC-CART-001. Test có thể cần MOBILECITY_USERNAME/PASSWORD "
-                            + "và có thể bị BLOCKED bởi CAPTCHA/OTP. Ứng dụng không lưu credentials "
-                            + "và không vượt cơ chế xác minh. Tiếp tục?",
-                    ButtonType.YES, ButtonType.NO);
-            confirmation.setTitle("Xác nhận test giỏ hàng");
-            confirmation.setHeaderText("Test có thể cần thông tin xác thực");
-            if (confirmation.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) {
-                return;
-            }
         }
         activeRunCount = selected.size();
         completedTests.set(0);
@@ -1345,8 +1403,8 @@ public final class MainFrame {
             Optional<Path> image = findScreenshot(result.id(), directory, start, end);
             if (image.isEmpty()) {
                 showAlert(Alert.AlertType.INFORMATION, "Ảnh bằng chứng không có",
-                        "Không tìm thấy ảnh trong lần chạy đang xem. Test đăng nhập/giỏ hàng "
-                                + "chủ động không lưu ảnh để bảo vệ dữ liệu nhạy cảm.");
+                        "Không tìm thấy ảnh trong lần chạy đang xem. Kiểm thử liên quan đến "
+                                + "thông tin đăng nhập chủ động không lưu ảnh để bảo vệ dữ liệu nhạy cảm.");
             } else {
                 openPath(image.get());
             }
@@ -1387,9 +1445,10 @@ public final class MainFrame {
 
     private Node buildBugsPage() {
         VBox page = page("Quản lý lỗi",
-                "Danh sách lỗi thực được ghi nhận bởi JUnit; không tạo mã bug hoặc mức độ giả.");
-        page.getChildren().add(infoBanner("Lỗi Selenium, timeout trình duyệt hoặc khẳng định thất bại "
-                + "cần được phân loại thủ công. Ứng dụng không tự kết luận đó là lỗi website."));
+                "Đánh giá mức độ và phân loại các kết quả FAIL được ghi nhận bởi JUnit.");
+        page.getChildren().add(infoBanner("Chọn mức độ và phân loại trực tiếp trong bảng; thay đổi được "
+                + "lưu tự động theo mã test. Đây là đánh giá của nhóm, không phải kết luận tự động "
+                + "rằng website có lỗi."));
         List<TestResult> failures = currentSummary.results().stream()
                 .filter(result -> result.status().equals("FAIL")).toList();
         VBox card = card();
@@ -1397,6 +1456,14 @@ public final class MainFrame {
             card.getChildren().add(emptyNotice("Không có test FAIL trong báo cáo đang xem. "
                     + "BLOCKED và NOT EXECUTED không được tính là lỗi."));
         } else {
+            try {
+                defectAssessments = new HashMap<>(defectAssessmentStore.loadAll());
+            } catch (IOException e) {
+                card.getChildren().add(emptyNotice(
+                        "Không thể tải đánh giá lỗi đã lưu: " + e.getMessage()));
+                page.getChildren().add(card);
+                return scrollable(page);
+            }
             TextField search = new TextField();
             search.setPromptText("Tìm theo mã test hoặc tên test");
             FilteredList<TestResult> filtered = new FilteredList<>(
@@ -1408,17 +1475,66 @@ public final class MainFrame {
                         || result.name().toLowerCase(Locale.ROOT).contains(query));
             });
             TableView<TestResult> table = new TableView<>(filtered);
+            table.setEditable(true);
             fitColumns(table);
-            table.getColumns().setAll(List.of(textColumn("Mã test", TestResult::id),
+            TableColumn<TestResult, String> severity = new TableColumn<>("Mức độ");
+            severity.setCellValueFactory(cell -> new javafx.beans.property.ReadOnlyStringWrapper(
+                    defectAssessmentFor(cell.getValue().id()).severity()));
+            severity.setCellFactory(ComboBoxTableCell.forTableColumn(
+                    FXCollections.observableArrayList(DEFECT_SEVERITIES)));
+            severity.setEditable(true);
+            severity.setOnEditCommit(event -> updateDefectAssessment(
+                    event.getRowValue(), event.getNewValue(), null, table));
+
+            TableColumn<TestResult, String> classification = new TableColumn<>("Phân loại");
+            classification.setCellValueFactory(cell -> new javafx.beans.property.ReadOnlyStringWrapper(
+                    defectAssessmentFor(cell.getValue().id()).classification()));
+            classification.setCellFactory(ComboBoxTableCell.forTableColumn(
+                    FXCollections.observableArrayList(DEFECT_CLASSIFICATIONS)));
+            classification.setEditable(true);
+            classification.setOnEditCommit(event -> updateDefectAssessment(
+                    event.getRowValue(), null, event.getNewValue(), table));
+
+            table.getColumns().setAll(List.of(
+                    textColumn("Mã test", TestResult::id),
                     textColumn("Test case", TestResult::name),
-                    textColumn("Mức độ", result -> "Chưa đánh giá"),
-                    textColumn("Phân loại", result -> "Chưa phân loại"),
+                    severity,
+                    classification,
+                    statusColumn("Trạng thái", TestResult::status),
                     textColumn("Thông tin thực tế", TestResult::details)));
             VBox.setVgrow(table, Priority.ALWAYS);
-            card.getChildren().addAll(new HBox(10, new Label("Tìm lỗi thực tế"), search), table);
+            card.getChildren().addAll(
+                    new HBox(10, new Label("Tìm lỗi thực tế"), search),
+                    mutedLabel("Nhấp vào ô Mức độ hoặc Phân loại để đánh giá; dữ liệu được lưu ngay."),
+                    table);
         }
         page.getChildren().add(card);
         return scrollable(page);
+    }
+
+    private DefectAssessmentStore.Assessment defectAssessmentFor(String testId) {
+        return defectAssessments.getOrDefault(testId,
+                new DefectAssessmentStore.Assessment("Chưa đánh giá", "Chưa phân loại"));
+    }
+
+    private void updateDefectAssessment(
+            TestResult result, String severity, String classification, TableView<TestResult> table) {
+        DefectAssessmentStore.Assessment previous = defectAssessmentFor(result.id());
+        DefectAssessmentStore.Assessment updated = new DefectAssessmentStore.Assessment(
+                severity == null ? previous.severity() : severity,
+                classification == null ? previous.classification() : classification);
+        Map<String, DefectAssessmentStore.Assessment> nextAssessments =
+                new HashMap<>(defectAssessments);
+        nextAssessments.put(result.id(), updated);
+        try {
+            defectAssessmentStore.saveAll(nextAssessments);
+            defectAssessments = nextAssessments;
+            table.refresh();
+        } catch (IOException e) {
+            table.refresh();
+            showAlert(Alert.AlertType.ERROR, "Không thể lưu đánh giá lỗi",
+                    "Đánh giá chưa được lưu: " + e.getMessage());
+        }
     }
 
     private Node buildReportsPage() {
@@ -1566,8 +1682,8 @@ public final class MainFrame {
     private Node buildSettingsPage() {
         VBox page = page("Cấu hình hệ thống",
                 "Các giá trị được truyền thành system properties khi ứng dụng khởi chạy Maven.");
-        page.getChildren().add(infoBanner("Thông tin đăng nhập không nằm trong giao diện hoặc tệp cấu hình. "
-                + "TC-CART-001 chỉ đọc MOBILECITY_USERNAME/PASSWORD từ môi trường."));
+        page.getChildren().add(infoBanner(
+                "Thông tin đăng nhập không nằm trong giao diện hoặc tệp cấu hình."));
         TextField baseUrl = new TextField(settings.baseUrl());
         CheckBox headless = new CheckBox("Chạy Chrome ở chế độ headless");
         headless.setSelected(settings.headless());

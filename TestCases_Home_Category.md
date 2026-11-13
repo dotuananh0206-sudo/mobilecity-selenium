@@ -7,7 +7,7 @@ Tài liệu này hoàn thiện 16 Test Case ban đầu trong `KTPM2.docx`, chỉ
 - **Xem trang chủ** — mục 3.3.2 và phần thiết kế Home.
 - **Xem danh mục sản phẩm** — mục 3.3.3 và phần thiết kế Category.
 
-Các Test Case dưới đây được triển khai vào Selenium/JUnit 5 theo Page Object Model khi có thể xác minh an toàn. Những trường hợp cần dữ liệu chi nhánh chuẩn hoặc staging/mô phỏng mạng riêng vẫn được giữ trong đặc tả và không bị đánh dấu PASS khi thiếu điều kiện. Kết quả từng ca trong lần chạy hiện tại được ghi tại [TestExecutionReport.md](./TestExecutionReport.md).
+Đây là tài liệu chi tiết riêng cho HOME/CATEGORY; danh mục tổng hợp toàn dự án nằm trong [TestCases.md](./TestCases.md), kế hoạch chung trong [TestPlan.md](./TestPlan.md). Các Test Case dưới đây được triển khai vào Selenium/JUnit 5 theo Page Object Model khi có thể xác minh an toàn. Những trường hợp cần dữ liệu chi nhánh chuẩn hoặc staging/mô phỏng mạng riêng vẫn được giữ trong đặc tả và không bị đánh dấu PASS khi thiếu điều kiện. Kết quả từng ca trong lần chạy hiện tại được ghi tại [TestExecutionReport.md](./TestExecutionReport.md).
 
 ### Cách đọc và quy ước
 

@@ -35,17 +35,6 @@ public final class TestConfig {
         return value("mobilecity.reportDir", "MOBILECITY_REPORT_DIR", "reports");
     }
 
-    public static String cartChromeProfileDirectory() {
-        String systemValue = System.getProperty("mobilecity.cartChromeProfileDir");
-        if (systemValue != null && !systemValue.isBlank()) {
-            return systemValue.trim();
-        }
-        String environmentValue = System.getenv("MOBILECITY_CART_CHROME_PROFILE_DIR");
-        return environmentValue == null || environmentValue.isBlank()
-                ? null
-                : environmentValue.trim();
-    }
-
     public static String chromeDebuggerAddress() {
         String configured = value("mobilecity.chromeDebuggerAddress",
                 "MOBILECITY_CHROME_DEBUGGER_ADDRESS", "");
@@ -66,14 +55,6 @@ public final class TestConfig {
             throw new IllegalArgumentException(
                     "mobilecity.keepBrowserOpenSeconds must be an integer", e);
         }
-    }
-
-    public static String loginUsername() {
-        return System.getenv("MOBILECITY_USERNAME");
-    }
-
-    public static String loginPassword() {
-        return System.getenv("MOBILECITY_PASSWORD");
     }
 
     private static String value(String property, String environment, String fallback) {

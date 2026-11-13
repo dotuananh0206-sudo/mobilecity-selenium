@@ -28,16 +28,14 @@ Bảng dưới đây phân biệt thiết kế Test Case, trạng thái tự đ�
 
 | STT | Module | Chức năng | Nội dung kiểm thử | Trạng thái hiện tại |
 |---:|---|---|---|---|
-| 1 | `HOME` | Xem trang chủ | Giao diện, Header, banner/video, sản phẩm, điều hướng, viewport và LCP. Có 12 ca được thiết kế; 9 phương thức HOME được tự động hóa. | Đã thiết kế và tự động hóa một phần; lần chạy gần nhất có PASS, `TC_11` FAIL, `TC_05`/`TC_08` BLOCKED; các ca chưa có code được nêu trong báo cáo. |
-| 2 | `CATEGORY` | Xem danh mục sản phẩm | Menu đa cấp, đổi/đóng menu, điều hướng hãng/phân loại và viewport điện thoại. Có 10 ca được thiết kế; 7 phương thức được tự động hóa. | Đã thiết kế và tự động hóa một phần; `DM_01`–`DM_07` PASS, `DM_10` FAIL; `DM_08`/`DM_09` chưa thực thi do thiếu fixture/môi trường an toàn. |
-| 3 | `SEARCH` | Tìm kiếm sản phẩm | Trường bắt buộc, kết quả khớp, trạng thái rỗng và mở trang chi tiết. | Có 4 Test Case và 4 phương thức Selenium; PASS trong lần chạy gần nhất. |
-| 4 | `FILTER & SORT` | Lọc và sắp xếp sản phẩm | Lối tắt hãng từ Home và sắp xếp giá; chưa có bộ Test Case độc lập riêng cho module này. | Tự động hóa một phần qua `TC_07` và `TC_08`; `TC_07` PASS, `TC_08` BLOCKED do danh sách sau sort hiển thị “Liên hệ” thay vì đủ giá số. |
-| 5 | `PRODUCT` | Xem chi tiết sản phẩm | Mở chi tiết, giá công khai, ảnh chính và thông số công khai. | Có 4 Test Case và 4 phương thức Selenium; PASS trong lần chạy gần nhất. |
-| 6 | `NEWS & PROMOTION` | Xem tin tức và khuyến mãi | Chưa có Test Case nghiệp vụ hoặc lớp Selenium độc lập được xác nhận. | Chưa triển khai; cần đặc tả/fixture và tiêu chí kiểm thử trước khi tự động hóa. |
-| 7 | `CONTACT & STORE` | Xem thông tin liên hệ và hệ thống cửa hàng | Chưa có Test Case nghiệp vụ hoặc lớp Selenium độc lập được xác nhận. | Chưa triển khai; cần đặc tả và dữ liệu đối chiếu được phê duyệt. |
-| 8 | `WARRANTY POLICY` | Xem chính sách bảo hành | Chưa có Test Case nghiệp vụ hoặc lớp Selenium độc lập được xác nhận. | Chưa triển khai; cần đặc tả và tiêu chí kiểm thử trước khi tự động hóa. |
-
-`CartTest` là kiểm thử bổ sung ngoài tám module chính: có một phương thức Selenium, nhưng lần chạy gần nhất bị `BLOCKED` do thiếu thông tin đăng nhập thử nghiệm. Không dùng số lượng Unit Test để thay cho Test Case nghiệp vụ.
+| 1 | `HOME` | Xem trang chủ | Giao diện, Header, banner/video, sản phẩm, điều hướng, viewport và LCP. Có 12 ca được thiết kế; 9 phương thức HOME được tự động hóa. | Lần chạy toàn suite gần nhất ghi trong báo cáo có `TC_11` FAIL; lần chạy mục tiêu 13-11-2026 xác nhận `TC_11` PASS, `TC_05`/`TC_08` BLOCKED. `TC_02`/`TC_09`/`TC_10` cần dữ liệu hoặc môi trường chuyên biệt. |
+| 2 | `CATEGORY` | Xem danh mục sản phẩm | Menu đa cấp, đổi/đóng menu, điều hướng hãng/phân loại và viewport điện thoại. Có 10 ca được thiết kế; 7 phương thức được tự động hóa. | `DM_01`–`DM_07` đã được tự động hóa; lần chạy mục tiêu 13-11-2026 xác nhận `DM_10` FAIL vì menu con không mở được trên viewport điện thoại. `DM_08`/`DM_09` cần fixture/môi trường an toàn. |
+| 3 | `SEARCH` | Tìm kiếm sản phẩm | Tìm kiếm có dấu/không dấu, gợi ý nhanh, từ khóa không tồn tại và từ khóa rỗng. | Có 5 Test Case (`TC_SR_01`–`TC_SR_05`) trong `SearchTest`; trạng thái chạy gần nhất xem trong báo cáo. |
+| 4 | `FILTER & SORT` | Lọc và sắp xếp sản phẩm | Lọc theo hãng, khoảng giá, kết hợp tiêu chí và sắp xếp giá tăng/giảm. | Có 5 ca theo mục 3.4.5 (`TC_FS_01`–`TC_FS_05`) trong lớp `FilterSortTest`; kết quả chạy xem trong báo cáo. |
+| 5 | `PRODUCT` | Xem chi tiết sản phẩm | Điều hướng chi tiết, thông tin bắt buộc, đổi phiên bản dung lượng và màu sắc. | Có 4 ca theo mục 3.4.6 (`TC_PR_01`–`TC_PR_04`) trong `ProductTest`; kết quả chạy xem trong báo cáo. |
+| 6 | `NEWS & PROMOTION` | Xem tin tức và khuyến mãi | 4 ca `TC_NP_01`–`TC_NP_04` trong lớp riêng `NewsPromotionTest`. | Đã triển khai theo mục 3.4.7; kết quả lần chạy hiện tại xem trong báo cáo. |
+| 7 | `CONTACT & STORE` | Xem thông tin liên hệ và hệ thống cửa hàng | 4 ca `TC_CS_01`–`TC_CS_04` trong lớp riêng `ContactStoreTest`. | Đã triển khai theo mục 3.4.8; giờ làm việc và bộ lọc vùng cần đối chiếu với giao diện thực tế. |
+| 8 | `WARRANTY POLICY` | Xem chính sách bảo hành | 4 ca `TC_WP_01`–`TC_WP_04` trong lớp riêng `WarrantyPolicyTest`. | Đã triển khai theo mục 3.4.9; trang hiện không có bảng chính sách để xác minh. |
 
 ## Công nghệ và kiến trúc
 
@@ -94,7 +92,6 @@ Mã nguồn chia theo vai trò: Page Object đóng gói locator và thao tác tr
 - JDK 17 trở lên; Maven 3.9 trở lên.
 - Google Chrome khi chạy Selenium cục bộ.
 - Kết nối mạng tới MobileCity và dịch vụ tải/tìm ChromeDriver của Selenium Manager.
-- Kiểm thử giỏ hàng cần tài khoản thử nghiệm được phép sử dụng; CAPTCHA/OTP có thể khiến ca bị BLOCKED.
 
 ```powershell
 git clone https://github.com/dotuananh0206-sudo/mobilecity-selenium.git
@@ -139,14 +136,14 @@ Các lệnh bên dưới chọn lớp JUnit thực tế trong `src/test/java/`.
 
 | STT | Module | Lớp Test | Lệnh thực hiện | Mục đích |
 |---:|---|---|---|---|
-| 1 | HOME | `HomeTest` | `mvn "-Dtest=HomeTest" test` | Trang chủ, điều hướng, banner, sắp xếp và viewport. |
+| 1 | HOME | `HomeTest` | `mvn "-Dtest=HomeTest" test` | Trang chủ, điều hướng, banner và viewport. |
 | 2 | CATEGORY | `CategoryTest` | `mvn "-Dtest=CategoryTest" test` | Menu danh mục và điều hướng danh mục. |
 | 3 | SEARCH | `SearchTest` | `mvn "-Dtest=SearchTest" test` | Tìm kiếm, kết quả và mở sản phẩm. |
-| 4 | FILTER & SORT | `HomeTest` | `mvn "-Dtest=HomeTest" test` | Các ca hãng và sắp xếp giá nằm trong `HomeTest`; chưa có lớp riêng. |
-| 5 | PRODUCT | `ProductTest` | `mvn "-Dtest=ProductTest" test` | Trang chi tiết và thông tin sản phẩm. |
-| 6 | NEWS & PROMOTION | Chưa triển khai | — | Chưa có lớp Test chức năng tương ứng. |
-| 7 | CONTACT & STORE | Chưa triển khai | — | Chưa có lớp Test chức năng tương ứng. |
-| 8 | WARRANTY POLICY | Chưa triển khai | — | Chưa có lớp Test chức năng tương ứng. |
+| 4 | FILTER & SORT | `FilterSortTest` | `mvn "-Dtest=FilterSortTest" test` | Lọc theo hãng/khoảng giá và sắp xếp giá. |
+| 5 | PRODUCT | `ProductTest` | `mvn "-Dtest=ProductTest" test` | Trang chi tiết, thông tin, phiên bản và màu sắc. |
+| 6 | NEWS & PROMOTION | `NewsPromotionTest` | `mvn "-Dtest=NewsPromotionTest" test` | Điều hướng, bài viết, chi tiết và lọc chuyên mục. |
+| 7 | CONTACT & STORE | `ContactStoreTest` | `mvn "-Dtest=ContactStoreTest" test` | Điều hướng, thông tin chi nhánh, lọc vùng và bản đồ. |
+| 8 | WARRANTY POLICY | `WarrantyPolicyTest` | `mvn "-Dtest=WarrantyPolicyTest" test` | Nội dung, điều hướng và bố cục chính sách bảo hành. |
 
 ### 5. Cấu hình chế độ chạy
 
@@ -162,18 +159,7 @@ Các tham số dưới đây được đọc từ Maven system properties; mặc
 
 Tham số cấu hình khác và biến môi trường được liệt kê trong [CONFIGURATION.md](./docs/CONFIGURATION.md).
 
-### 6. Chạy kiểm thử giỏ hàng
-
-`CartTest` là kiểm thử bổ sung ngoài tám module trên. Test thay đổi tạm thời số lượng sản phẩm và thử khôi phục; không checkout hoặc đặt hàng.
-
-| STT | Nội dung | Hướng dẫn |
-|---:|---|---|
-| 1 | Chuẩn bị tài khoản | Chỉ dùng tài khoản thử nghiệm được phép. CAPTCHA/OTP có thể khiến test bị chặn. |
-| 2 | Cấu hình thông tin | Đặt `MOBILECITY_USERNAME` và `MOBILECITY_PASSWORD` trong biến môi trường; không ghi giá trị vào mã nguồn hoặc README. |
-| 3 | Khởi chạy | `mvn "-Dtest=CartTest" "-Dmobilecity.headless=false" test` |
-| 4 | Lưu ý | Không ghi mật khẩu vào lệnh, log hay repository. Hướng dẫn cấu hình an toàn, profile riêng và remote debugging: [CART_TESTING.md](./docs/CART_TESTING.md). |
-
-### 7. Xem báo cáo và bằng chứng
+### 6. Xem báo cáo và bằng chứng
 
 | STT | Thành phần | Đường dẫn | Nội dung |
 |---:|---|---|---|
@@ -185,9 +171,9 @@ Tham số cấu hình khác và biến môi trường được liệt kê trong 
 
 Surefire reports nằm trong `target/` và có thể bị xóa bởi `mvn clean`. Hướng dẫn chi tiết về log, XML, ảnh và artifact CI nằm tại [REPORTING.md](./docs/REPORTING.md).
 
-Lần chạy full suite local gần nhất được ghi trong [TestExecutionReport.md](./TestExecutionReport.md): ngày 12-11-2026, Windows 11, Maven 3.9.15, Java 26.0.1, Chrome 157 headless; **30 PASS, 2 FAIL, 3 skipped trên 35 test**. Trong 22 case HOME/CATEGORY: **13 PASS, 2 FAIL, 2 BLOCKED, 5 NOT EXECUTED**. Kết quả này chỉ thuộc lần chạy local nêu trên; CI chưa được chạy lại để xác minh thay đổi hiện tại.
+Lần chạy full suite được ghi nhận trước khi loại test giỏ hàng nằm trong [TestExecutionReport.md](./TestExecutionReport.md): run `MC-20261113-161629`, ngày 13-11-2026, Windows 11, Maven 3.9.15, Chrome 157 headless; **39 PASS, 6 FAIL, 1 ERROR, 7 BLOCKED/skipped trên 53 test**. Sau run này, `TC-CART-001` đã bị loại khỏi catalog; hiện có 52 selector. Kết quả lịch sử không đại diện cho suite đã cập nhật; CI chưa được chạy lại.
 
-### 8. Theo dõi trạng thái kiểm thử
+### 7. Theo dõi trạng thái kiểm thử
 
 | Trạng thái | Ý nghĩa |
 |---|---|
@@ -211,15 +197,16 @@ Job timeout là 20 phút. Workflow kiểm tra UTF-8 và luôn thử tải Surefi
 - Không vượt CAPTCHA, OTP hoặc cơ chế chống bot; ghi nhận test bị chặn đúng trạng thái.
 - Không đặt hàng, checkout hoặc thanh toán thật.
 - Không commit credentials, `.env`, cookie hay Chrome profile; không chia sẻ profile.
-- Không ghi dữ liệu đăng nhập vào log/ảnh; ảnh chụp các test đăng nhập/giỏ hàng được hạn chế.
+- Không ghi dữ liệu đăng nhập vào log/ảnh; ảnh chụp màn hình đăng nhập được hạn chế.
 - Không suy diễn PASS từ test chưa chạy, artifact thiếu hoặc một lần chạy cũ.
 
 ## Tài liệu và phát triển tiếp
 
+- [Test Plan](./TestPlan.md) — phạm vi, cách tiếp cận, môi trường và tiêu chí chấp nhận.
+- [Danh mục tổng hợp Test Case](./TestCases.md) — toàn bộ 48 ca chức năng, ca bổ sung và unit test cùng trạng thái tự động hóa/kết quả.
 - [Test Case HOME/CATEGORY](./TestCases_Home_Category.md) — đặc tả, khả năng tự động hóa và độ bao phủ Use Case.
-- [Báo cáo thực thi HOME/CATEGORY](./TestExecutionReport.md) — kết quả local gần nhất theo mã Test Case.
+- [Báo cáo thực thi](./TestExecutionReport.md) — kết quả local theo run ID và mã Test Case.
 - [Cấu hình](./docs/CONFIGURATION.md) — system properties, biến môi trường và thiết lập local.
-- [Kiểm thử giỏ hàng](./docs/CART_TESTING.md) — credentials, profile riêng và remote debugging.
 - [Ứng dụng Test Manager](./docs/TEST_MANAGER.md) — các màn hình và cách sử dụng.
 - [Báo cáo và bằng chứng](./docs/REPORTING.md) — log, Surefire, ảnh, UTF-8 và artifact CI.
 

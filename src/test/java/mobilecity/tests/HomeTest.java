@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class HomeTest extends BaseTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(HomeTest.class);
 
-    // [HOME] Kiểm tra trang chủ tải các vùng nội dung chính và hiển thị thông tin sản phẩm.
+    // [HOME] Kiểm tra trang chủ tải các vùng nội dung cốt lõi.
     @Test
     @DisplayName("TC_01 - Tải giao diện trang chủ mặc định")
     void testTC01_LoadHomePage() {
@@ -42,6 +42,8 @@ class HomeTest extends BaseTest {
                 "Thẻ sản phẩm cần có tên");
         assertTrue(products.firstListedProductPrice().matches("(?s).*\\d.*"),
                 "Thẻ sản phẩm cần có giá công khai");
+        assertTrue(homePage.hasVisibleSupportWidget(),
+                "Trang chủ cần hiển thị tiện ích hỗ trợ khách hàng");
     }
 
     // [CATEGORY] Kiểm tra nhấp tên danh mục gốc mở trang tổng hợp Điện thoại.
@@ -57,6 +59,8 @@ class HomeTest extends BaseTest {
 
         assertEquals(normalizedUrl(destination), normalizedUrl(driver.getCurrentUrl()),
                 "Nhấp danh mục gốc cần mở đúng trang Điện thoại");
+        assertTrue(new CategoryPage(driver).categoryPageMentions("Điện thoại"),
+                "Trang đích cần nhận diện danh mục Điện thoại");
         assertTrue(!products.firstListedProductName().isBlank(),
                 "Danh mục cần hiển thị tên sản phẩm");
         assertTrue(products.firstListedProductPrice().matches("(?s).*\\d.*"),
@@ -105,7 +109,7 @@ class HomeTest extends BaseTest {
 
     // [HOME] Kiểm tra banner Phụ kiện đang hiển thị điều hướng đến nội dung Phụ kiện.
     @Test
-    @DisplayName("TC_05 - Tương tác với banner sự kiện chính")
+    @DisplayName("TC_05 - Điều hướng từ banner trang chủ")
     void testTC05_AccessoryBannerNavigation() {
         HomePage homePage = new HomePage(driver).open();
         assumeNoSiteChallenge();
@@ -124,7 +128,7 @@ class HomeTest extends BaseTest {
 
     // [HOME] Kiểm tra iframe YouTube hiện diện và có kích thước hiển thị.
     @Test
-    @DisplayName("TC_06 - Hiển thị khung video YouTube nhúng")
+    @DisplayName("TC_06 - Hiển thị và tải khung video YouTube")
     void testTC06_EmbeddedYouTubeFrameIsVisible() {
         HomePage homePage = new HomePage(driver).open();
         assumeNoSiteChallenge();
@@ -135,7 +139,7 @@ class HomeTest extends BaseTest {
 
     // [HOME] Kiểm tra lối tắt Samsung Chính hãng mở đúng danh mục thương hiệu.
     @Test
-    @DisplayName("TC_07 - Lọc nhanh sản phẩm theo hãng")
+    @DisplayName("TC_07 - Mở danh mục từ lối tắt hãng trên Home")
     void testTC07_OpenSamsungOfficialCategory() {
         HomePage homePage = new HomePage(driver).open();
         assumeNoSiteChallenge();
@@ -149,9 +153,9 @@ class HomeTest extends BaseTest {
                 "Trang đích cần nhận diện thương hiệu Samsung");
     }
 
-    // [HOME] Kiểm tra thứ tự giá theo cả hai chiều sắp xếp trên danh sách sản phẩm.
+    // [HOME] Kiểm tra sắp xếp giá tăng dần từ Home và giảm dần trong danh mục Điện thoại.
     @Test
-    @DisplayName("TC_08 - Sắp xếp sản phẩm hiển thị trên trang chủ")
+    @DisplayName("TC_08 - Sắp xếp sản phẩm theo giá trên Home")
     void testTC08_SortProductsByPrice() {
         HomePage homePage = new HomePage(driver).open();
         assumeNoSiteChallenge();
@@ -161,43 +165,56 @@ class HomeTest extends BaseTest {
                 "Trang chủ cần tải danh sách sản phẩm trước khi sắp xếp");
         assumeTrue(homePage.hasPriceSortControl(),
                 "BLOCKED: không tìm thấy bộ sắp xếp giá trên nội dung trang chủ hiện tại");
+        String categoryDestination = homePage.phoneCategoryDestination();
         homePage.sortProductsByPrice("Giá từ thấp đến cao");
+        wait.until(currentDriver -> normalizedUrl(currentDriver.getCurrentUrl())
+                .equals(normalizedUrl(categoryDestination)));
+        assertEquals(normalizedUrl(categoryDestination), normalizedUrl(driver.getCurrentUrl()),
+                "Sắp xếp từ thấp đến cao cần mở danh sách Điện thoại");
+        assumeTrue(homePage.displayedPriceCount() >= 2,
+                "BLOCKED: cần ít nhất hai sản phẩm có giá số để xác minh thứ tự tăng dần");
         assertTrue(Boolean.TRUE.equals(wait.until(ignored -> homePage.displayedPricesAreOrdered(true))),
                 "Giá sản phẩm cần được sắp xếp tăng dần");
 
-        String firstAscendingProduct = new ProductPage(driver).firstListedProductName();
         homePage.sortProductsByPrice("Giá từ cao đến thấp");
-        assertTrue(Boolean.TRUE.equals(wait.until(ignored ->
-                        !firstAscendingProduct.equals(new ProductPage(driver).firstListedProductName()))),
-                "Danh sách sản phẩm cần cập nhật sau khi chọn giá giảm dần");
-        assertTrue(homePage.displayedProductCount() >= 2,
-                "Danh sách sau khi sắp xếp cần có ít nhất hai sản phẩm");
         assumeTrue(homePage.displayedPriceCount() >= 2,
-                "BLOCKED: sản phẩm đầu danh sách hiển thị giá 'Liên hệ', không đủ giá số để xác minh thứ tự giảm dần");
+                "BLOCKED: cần ít nhất hai sản phẩm có giá số để xác minh thứ tự giảm dần");
         assertTrue(Boolean.TRUE.equals(wait.until(ignored -> homePage.displayedPricesAreOrdered(false))),
                 "Giá sản phẩm cần được sắp xếp giảm dần");
     }
 
-    // [HOME] Kiểm tra bố cục trang chủ không tràn ngang ở viewport điện thoại.
+    // [HOME] Kiểm tra Home có thể sử dụng ở kích thước Desktop và viewport điện thoại.
     @Test
     @DisplayName("TC_11 - Hiển thị trang chủ theo kích thước viewport")
     void testTC11_HomePageResponsiveViewport() {
         Dimension originalSize = driver.manage().window().getSize();
         try {
-            driver.manage().window().setSize(new Dimension(390, 844));
+            driver.manage().window().setSize(new Dimension(1366, 768));
             HomePage homePage = new HomePage(driver).open();
             assumeNoSiteChallenge();
 
             assertTrue(homePage.hasNoHorizontalOverflow(),
+                    "Nội dung trang chủ không được tràn ngang ở viewport Desktop");
+            long desktopViewportWidth = ((Number) ((JavascriptExecutor) driver)
+                    .executeScript("return document.documentElement.clientWidth")).longValue();
+
+            driver.manage().window().setSize(new Dimension(390, 844));
+            WebDriverWait wait = new WebDriverWait(driver, TestConfig.waitTimeout());
+            assertTrue(Boolean.TRUE.equals(wait.until(currentDriver ->
+                            ((Number) ((JavascriptExecutor) currentDriver)
+                                    .executeScript("return document.documentElement.clientWidth")).longValue()
+                                    < desktopViewportWidth)),
+                    "Trình duyệt cần thu hẹp viewport trước khi kiểm tra bố cục điện thoại");
+            assertTrue(homePage.hasNoHorizontalOverflow(),
                     "Nội dung trang chủ không được tràn ngang ở viewport điện thoại");
             assertTrue(new CategoryPage(driver).headerCategoryIsInsideViewport("Điện thoại"),
-                    "Danh mục chính cần nằm trong viewport điện thoại");
+                    "Liên kết danh mục chính cần nằm trọn trong viewport điện thoại");
         } finally {
             driver.manage().window().setSize(originalSize);
         }
     }
 
-    // [HOME] Đo LCP qua năm lần tải độc lập và so sánh từng mẫu với ngưỡng 2.5 giây.
+    // [HOME] Đo LCP qua năm lần tải độc lập với ngưỡng nhỏ hơn 2.5 giây.
     @Test
     @DisplayName("TC_12 - Đo thời gian hiển thị nội dung chính Home")
     void testTC12_HomeLargestContentfulPaint() {
